@@ -16,7 +16,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 8000;
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173','https://eval-qi4qbj2tk-mayanks-projects-fd92aa30.vercel.app'],
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173','https://eval-m1aitm51j-mayanks-projects-fd92aa30.vercel.app'],
   credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
