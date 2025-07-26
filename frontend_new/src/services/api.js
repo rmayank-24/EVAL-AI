@@ -1,19 +1,28 @@
-const API_BASE_URL = 'http://localhost:8000';
+// This line now correctly reads the environment variable for production,
+// but falls back to localhost for local development.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 class ApiService {
   async getAuthHeaders() {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user?.accessToken) {
-      throw new Error('No authentication token available');
+    // A small improvement: use a try-catch block for safer parsing
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user?.accessToken) {
+        // No need to throw an error here, the request might be public
+        return { 'Content-Type': 'application/json' };
+      }
+      return {
+        'Authorization': `Bearer ${user.accessToken}`,
+        'Content-Type': 'application/json',
+      };
+    } catch (error) {
+      return { 'Content-Type': 'application/json' };
     }
-    return {
-      'Authorization': `Bearer ${user.accessToken}`,
-      'Content-Type': 'application/json',
-    };
   }
 
   async request(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
+    // Headers are now fetched inside the request to be more dynamic
     const headers = await this.getAuthHeaders();
     
     const response = await fetch(url, {
@@ -29,7 +38,13 @@ class ApiService {
       throw new Error(error.error || `HTTP ${response.status}`);
     }
 
-    return response.json();
+    // Handle cases where the response might be empty
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+        return response.json();
+    } else {
+        return; 
+    }
   }
 
   async uploadRequest(endpoint, formData) {
@@ -37,6 +52,7 @@ class ApiService {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
       headers: {
+        // No 'Content-Type' here, the browser sets it for multipart/form-data
         'Authorization': `Bearer ${user.accessToken}`,
       },
       body: formData,
