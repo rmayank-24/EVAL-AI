@@ -5,16 +5,11 @@ import path from 'path'; // Import the 'path' module
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    // The explicit configuration for the React plugin
-    react({
-      jsxImportSource: '@emotion/react',
-      babel: {
-        plugins: ['@emotion/babel-plugin'],
-      },
-    }),
+    // Using the standard React plugin configuration
+    react(),
   ],
   resolve: {
-    // This allows you to use cleaner imports
+    // This allows you to use cleaner imports like '@/components/...'
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
