@@ -66,9 +66,33 @@ class ApiService {
     return response.json();
   }
 
+  // --- THIS IS THE CORRECTED FUNCTION ---
   // User Management
-  async setupUser() {
-    return this.request('/users', { method: 'POST' });
+  async setupUser(token) {
+    // This method is special and doesn't use the generic 'request' method.
+    // It's called immediately after signup and needs to use the token that was
+    // just generated, before it has been saved to localStorage.
+    const url = `${API_BASE_URL}/users`;
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`, // Use the provided token
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}), // Send an empty body for a POST request
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'User setup failed' }));
+        throw new Error(error.error || `HTTP ${response.status}`);
+    }
+
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+        return response.json();
+    } else {
+        return;
+    }
   }
 
   async getUsers() {
