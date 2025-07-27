@@ -62,15 +62,32 @@ export const AuthProvider = ({ children }) => {
     return result;
   };
 
+  // --- THIS IS THE CORRECTED SIGNUP FUNCTION ---
   const signup = async (email, password) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    // Setup user in backend
+    // 1. Create the user in Firebase Authentication
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
     try {
-      await apiService.setupUser();
+      // 2. Immediately get the ID token from the newly created user object
+      const token = await userCredential.user.getIdToken();
+
+      // 3. Call the backend setup and pass the token directly.
+      //    You will need to update your apiService.setupUser function for this.
+      await apiService.setupUser(token);
+
     } catch (error) {
       console.error('Error setting up user in backend:', error);
+      
+      // IMPORTANT (but optional): If the backend setup fails, it's good practice
+      // to delete the user from Firebase Auth to prevent an "orphaned" account
+      // that exists in Auth but not in your database.
+      await userCredential.user.delete();
+
+      // Rethrow the error so your UI can catch it and show a message to the user.
+      throw new Error('Failed to create user profile. Please try again.');
     }
-    return result;
+
+    return userCredential;
   };
 
   const logout = async () => {
