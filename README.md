@@ -21,13 +21,14 @@ EVAL-AI is a comprehensive web application designed to streamline the educationa
 ## 📸 Screenshots
 
 ### Admin Dashboard
-<img src="https://github.com/user-attachments/assets/9538ccd7-6cfc-440d-a610-c9133cde0bbd" alt="Admin Dashboard" width="700"/>
+<img width="2832" height="1414" alt="image" src="https://github.com/user-attachments/assets/88167a21-1b1b-4a5b-8120-dbf98a5ced28" />
 
 ### Teacher Dashboard
-<img src="https://github.com/user-attachments/assets/743df398-d975-48e0-8ee3-7f10ba2311ba" alt="Teacher Dashboard" width="700"/>
+<img width="2876" height="1461" alt="image" src="https://github.com/user-attachments/assets/a1f6380a-a830-46ae-86c2-30173fa5e918" />
 
 ### Student Submission
-<img src="https://github.com/user-attachments/assets/2de1ff5d-d2d6-432e-9b05-ba4bc7248695" alt="Student Submission" width="700"/>
+<img width="2842" height="1462" alt="image" src="https://github.com/user-attachments/assets/5486ee13-af3a-4211-97a0-d81f5e900cea" />
+
 ## 🛠️ Tech Stack
 
 | Category     | Technology                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
