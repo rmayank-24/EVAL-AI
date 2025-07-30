@@ -16,7 +16,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 8000;
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173'],
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173', 'http://localhost:5174', 'https://eval-50qea5ca9-mayanks-projects-fd92aa30.vercel.app'],
   credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
@@ -576,7 +576,7 @@ app.post('/evaluate', checkAuth, upload.single('file'), async (req, res) => {
         const rubricContent = rubric.map(r => `- ${r.criterion} (${r.points} points)`).join('\n');
         const totalPoints = rubric.reduce((sum, r) => sum + (Number(r.points) || 0), 0);
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
         const jsonSchema = `{"score": "string (e.g., '8/${totalPoints}')","evaluation": "string (A brief, one-sentence summary.)","mistakes": "array of strings","feedback": "string (Detailed, constructive feedback.)"}`;
         const persona = isStrictMode ? 'You are a strict, logical grading machine.' : 'You are a helpful and fair professor.';
         const basePrompt = `${persona}\n\nEvaluate the student's submission for the question: "${question}".\nThe scoring guide is:\n${rubricContent}\n\nYou MUST respond with ONLY a valid JSON object following this schema:\n${jsonSchema}`;
@@ -996,7 +996,7 @@ app.post('/analytics/generate', [checkAuth, checkTeacherOrAdmin], async (req, re
         if (submissionsForAI.length > 0) {
             const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
             const prompt = `You are an expert educational analyst. Your role is to provide a concise, high-level summary of student performance based on recent submission data. Focus on identifying common trends, widespread mistakes, and potential areas for teacher focus. Do not list individual student performance. Keep the summary to 3-4 sentences. Here is the submission data: ${JSON.stringify(submissionsForAI, null, 2)}`;
-            const result = await model.generateContent(prompt);
+            const result = await model.generateContent({contents: [{role: "user", parts: [{text: prompt}]}]});
             aiSummary = (await result.response).text();
         }
 
@@ -1203,9 +1203,14 @@ app.all('*', (req, res) => {
     res.status(404).json({ error: 'Endpoint not found.' });
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📊 Health check available at http://localhost:${PORT}/health`);
-    console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+// --- Start server only if this file is run directly ---
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+        console.log(`📊 Health check available at http://localhost:${PORT}/health`);
+        console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+}
+
+// --- Export the app for testing ---
+module.exports = app;
