@@ -576,7 +576,7 @@ app.post('/evaluate', checkAuth, upload.single('file'), async (req, res) => {
         const rubricContent = rubric.map(r => `- ${r.criterion} (${r.points} points)`).join('\n');
         const totalPoints = rubric.reduce((sum, r) => sum + (Number(r.points) || 0), 0);
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }); // Changed to gemini-1.5-flash for consistency
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }); // 
         const jsonSchema = `{"score": "string (e.g., '8/${totalPoints}')","evaluation": "string (A brief, one-sentence summary.)","mistakes": "array of strings","feedback": "string (Detailed, constructive feedback.)"}`;
         const persona = isStrictMode ? 'You are a strict, logical grading machine.' : 'You are a helpful and fair professor.';
         const basePrompt = `${persona}\n\nEvaluate the student's submission for the question: "${question}".\nThe scoring guide is:\n${rubricContent}\n\nYou MUST respond with ONLY a valid JSON object following this schema:\n${jsonSchema}`;
