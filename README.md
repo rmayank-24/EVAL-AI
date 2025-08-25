@@ -3,6 +3,7 @@
 **An AI-Powered Platform for Automated Homework Evaluation and Feedback.**
 
 ---
+<img width="2816" height="1536" alt="eval_banner" src="https://github.com/user-attachments/assets/e9d11d3e-0cbb-42d6-9e9a-52142a797b7b" />
 
 [![Vercel](https://img.shields.io/badge/Frontend-Live%20on%20Vercel-black?style=flat-square&logo=vercel)](https://eval-ai-beta.vercel.app/)
 [![Render](https://img.shields.io/badge/Backend-Live%20on%20Render-46E3B7?style=flat-square&logo=render)](https://eval-ai-qett.onrender.com/)
