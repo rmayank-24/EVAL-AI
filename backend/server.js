@@ -62,7 +62,7 @@ try {
 
 // --- AI Helper Function with Retry Logic ---
 const callGenerativeAI = async (prompt, isJson = true, retries = 3, delay = 1000) => {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
     for (let i = 0; i < retries; i++) {
         try {
