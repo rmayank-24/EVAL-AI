@@ -164,6 +164,38 @@ class ApiService {
       body: JSON.stringify({ submissionId, message, isRagMode })
     });
   }
+
+  // ========== Enhanced Features (BTech Gen AI Project) ==========
+
+  /**
+   * Get detailed plagiarism report for a submission
+   */
+  async getPlagiarismReport(submissionId: string) {
+    return this.request(`/submissions/${submissionId}/plagiarism`);
+  }
+
+  /**
+   * Get explainability data (chain-of-thought, confidence, etc.)
+   */
+  async getExplainability(submissionId: string) {
+    return this.request(`/submissions/${submissionId}/explainability`);
+  }
+
+  /**
+   * Get multi-agent evaluation breakdown
+   */
+  async getMultiAgentData(submissionId: string) {
+    return this.request(`/submissions/${submissionId}/multi-agent`);
+  }
+
+  /**
+   * Recheck plagiarism for a submission (teacher/admin only)
+   */
+  async recheckPlagiarism(submissionId: string) {
+    return this.request(`/submissions/${submissionId}/recheck-plagiarism`, {
+      method: 'POST'
+    });
+  }
 }
 
 export default new ApiService();

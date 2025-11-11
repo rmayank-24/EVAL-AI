@@ -39,6 +39,12 @@ const EvaluatorPage = () => {
   const [selectedAssignment, setSelectedAssignment] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isStrictMode, setIsStrictMode] = useState(false);
+  
+  // Enhanced features toggles (BTech Gen AI Project)
+  const [enableMultiAgent, setEnableMultiAgent] = useState(true);
+  const [enablePlagiarism, setEnablePlagiarism] = useState(true);
+  const [enableExplainability, setEnableExplainability] = useState(true);
+  
   const [loading, setLoading] = useState(false);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -117,10 +123,15 @@ const EvaluatorPage = () => {
       formData.append('subjectId', selectedSubject);
       formData.append('teacherUid', subject.teacherUid);
       formData.append('isStrictMode', String(isStrictMode));
+      
+      // Enhanced features (BTech Gen AI Project)
+      formData.append('enableMultiAgent', String(enableMultiAgent));
+      formData.append('enablePlagiarismCheck', String(enablePlagiarism));
+      formData.append('enableExplainability', String(enableExplainability));
 
       const result = await apiService.submitEvaluation(formData);
       setFeedback(result);
-      showSuccess('Submission evaluated successfully!');
+      showSuccess('Submission evaluated successfully with enhanced features!');
     } catch (error: any) {
       showError(error.message || 'Failed to evaluate submission');
     } finally {
@@ -165,9 +176,86 @@ const EvaluatorPage = () => {
           {file && <div className="mt-4 p-3 bg-gray-800/50 rounded-lg border border-white/10 flex items-center space-x-3"><FileText className="w-5 h-5 text-blue-400" /><p className="font-medium text-gray-200 font-mono">{file.name}</p></div>}
         </div>
 
+        {/* Enhanced Features Section */}
+        <div className="mb-6 p-4 bg-gradient-to-br from-purple-500/10 to-cyan-500/10 border border-purple-500/20 rounded-lg">
+          <h3 className="text-sm font-bold text-purple-300 mb-3 font-mono flex items-center">
+            <span className="mr-2">✨</span>
+            Enhanced AI Features (BTech Gen AI Project)
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center justify-between bg-gray-800/30 p-3 rounded-lg border border-white/10">
+              <div>
+                <label htmlFor="multiAgent" className="text-sm font-medium text-gray-200 font-body block">
+                  🤖 Multi-Agent Evaluation
+                </label>
+                <p className="text-xs text-gray-400 mt-1">3 AI agents reach consensus</p>
+              </div>
+              <input
+                type="checkbox"
+                id="multiAgent"
+                checked={enableMultiAgent}
+                onChange={(e) => setEnableMultiAgent(e.target.checked)}
+                className="w-5 h-5 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-between bg-gray-800/30 p-3 rounded-lg border border-white/10">
+              <div>
+                <label htmlFor="plagiarism" className="text-sm font-medium text-gray-200 font-body block">
+                  🔍 Plagiarism Detection
+                </label>
+                <p className="text-xs text-gray-400 mt-1">5 proprietary algorithms</p>
+              </div>
+              <input
+                type="checkbox"
+                id="plagiarism"
+                checked={enablePlagiarism}
+                onChange={(e) => setEnablePlagiarism(e.target.checked)}
+                className="w-5 h-5 text-cyan-600 bg-gray-700 border-gray-600 rounded focus:ring-cyan-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-between bg-gray-800/30 p-3 rounded-lg border border-white/10">
+              <div>
+                <label htmlFor="explainability" className="text-sm font-medium text-gray-200 font-body block">
+                  💡 Explainable AI
+                </label>
+                <p className="text-xs text-gray-400 mt-1">Chain-of-thought reasoning</p>
+              </div>
+              <input
+                type="checkbox"
+                id="explainability"
+                checked={enableExplainability}
+                onChange={(e) => setEnableExplainability(e.target.checked)}
+                className="w-5 h-5 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-between bg-gray-800/30 p-3 rounded-lg border border-white/10">
+              <div>
+                <label htmlFor="strictMode" className="text-sm font-medium text-gray-200 font-body block">
+                  ⚖️ Strict Mode
+                </label>
+                <p className="text-xs text-gray-400 mt-1">Rigorous grading standards</p>
+              </div>
+              <input
+                type="checkbox"
+                id="strictMode"
+                checked={isStrictMode}
+                onChange={(e) => setIsStrictMode(e.target.checked)}
+                className="w-5 h-5 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500"
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between">
-          <div className="flex items-center"><input type="checkbox" id="strictMode" checked={isStrictMode} onChange={(e) => setIsStrictMode(e.target.checked)} className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500" /><label htmlFor="strictMode" className="ml-2 text-sm font-medium text-gray-400 font-body">Strict Mode</label></div>
-          <button onClick={handleSubmit} disabled={loading || !file || !selectedAssignment} className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 font-mono"><Send className="w-4 h-4 mr-2" />Submit</button>
+          <div className="text-sm text-gray-400 font-body">
+            {(enableMultiAgent || enablePlagiarism || enableExplainability) && (
+              <span className="text-yellow-400">⚡ Enhanced evaluation may take 15-25 seconds</span>
+            )}
+          </div>
+          <button onClick={handleSubmit} disabled={loading || !file || !selectedAssignment} className="flex items-center px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors disabled:opacity-50 font-mono shadow-lg"><Send className="w-4 h-4 mr-2" />{loading ? 'Evaluating...' : 'Submit'}</button>
         </div>
       </div>
 

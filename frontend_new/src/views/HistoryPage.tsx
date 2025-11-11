@@ -13,7 +13,22 @@ interface Submission {
   date: string;
   score: string;
   teacherReviewed: boolean;
-  createdAt: { seconds: number }; // Add the missing property
+  createdAt: { seconds: number };
+  enhancedFeatures?: {
+    multiAgent: boolean;
+    plagiarismCheck: boolean;
+    explainableAI: boolean;
+  };
+  plagiarismReport?: {
+    verdict: {
+      severity: string;
+      overallScore: string;
+      color: string;
+    };
+  };
+  aiFeedback?: {
+    multiAgent?: any;
+  };
 }
 
 interface NotificationContextType {
@@ -99,9 +114,20 @@ const HistoryPage = () => {
               variants={itemVariants}
               whileHover={{ scale: 1.03 }}
             >
-              <h3 className="text-md font-medium text-white mb-3 font-mono truncate">
-                {submission.question}
-              </h3>
+              <div className="flex items-start justify-between mb-3">
+                <h3 className="text-md font-medium text-white font-mono truncate flex-1">
+                  {submission.question}
+                </h3>
+                {submission.enhancedFeatures && (
+                  submission.enhancedFeatures.multiAgent || 
+                  submission.enhancedFeatures.plagiarismCheck || 
+                  submission.enhancedFeatures.explainableAI
+                ) && (
+                  <span className="ml-2 px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded border border-purple-500/30 whitespace-nowrap">
+                    ✨ Enhanced
+                  </span>
+                )}
+              </div>
               
               <div className="space-y-2 text-sm text-gray-400 font-mono">
                 <div className="flex items-center"><Calendar className="w-4 h-4 mr-2" />{submission.date}</div>
@@ -112,10 +138,38 @@ const HistoryPage = () => {
                 </div>
               </div>
 
+              {/* Enhanced Features Badges */}
+              {submission.enhancedFeatures && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {submission.enhancedFeatures.multiAgent && (
+                    <span className="px-2 py-1 bg-purple-500/10 text-purple-300 text-xs rounded border border-purple-500/20">
+                      🤖 Multi-Agent
+                    </span>
+                  )}
+                  {submission.enhancedFeatures.plagiarismCheck && submission.plagiarismReport && (
+                    <span 
+                      className="px-2 py-1 text-xs rounded border"
+                      style={{
+                        backgroundColor: `${submission.plagiarismReport.verdict.color}10`,
+                        borderColor: `${submission.plagiarismReport.verdict.color}30`,
+                        color: submission.plagiarismReport.verdict.color
+                      }}
+                    >
+                      🔍 {submission.plagiarismReport.verdict.overallScore}%
+                    </span>
+                  )}
+                  {submission.enhancedFeatures.explainableAI && (
+                    <span className="px-2 py-1 bg-blue-500/10 text-blue-300 text-xs rounded border border-blue-500/20">
+                      💡 Explainable
+                    </span>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center space-x-2 text-gray-500 mt-4 pt-4 border-t border-white/10">
                 <MessageCircle className="w-5 h-5" />
                 <Bot className="w-5 h-5" />
-                <span className="text-xs font-body">View Feedback</span>
+                <span className="text-xs font-body">View Details</span>
               </div>
             </motion.div>
           ))}

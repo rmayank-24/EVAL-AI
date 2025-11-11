@@ -11,6 +11,12 @@ const multer = require('multer');
 const pdf = require('pdf-parse');
 const mammoth = require('mammoth');
 
+// Import custom Gen AI modules (BTech Project Features)
+const MultiAgentEvaluator = require('./modules/multiAgentEvaluator');
+const PlagiarismDetector = require('./modules/plagiarismDetector');
+const ExplainableAI = require('./modules/explainableAI');
+const RAGGrading = require('./modules/ragGrading');
+
 // 2. Initialize Express App and configure middleware
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -57,6 +63,23 @@ try {
     console.log("Google AI initialized successfully.");
 } catch (error) {
     console.error("Error initializing Google AI:", error);
+    process.exit(1);
+}
+
+// 5. Initialize custom Gen AI modules
+let multiAgentEvaluator, plagiarismDetector, explainableAI, ragGrading;
+try {
+    multiAgentEvaluator = new MultiAgentEvaluator(process.env.GOOGLE_API_KEY);
+    plagiarismDetector = new PlagiarismDetector(process.env.GOOGLE_API_KEY);
+    explainableAI = new ExplainableAI(process.env.GOOGLE_API_KEY);
+    ragGrading = new RAGGrading();
+    console.log("✨ Custom Gen AI modules initialized successfully.");
+    console.log("   - Multi-Agent Evaluation System");
+    console.log("   - Plagiarism Detection");
+    console.log("   - Explainable AI");
+    console.log("   - RAG-Enhanced Grading");
+} catch (error) {
+    console.error("Error initializing custom modules:", error);
     process.exit(1);
 }
 
@@ -501,15 +524,18 @@ app.delete('/assignments/:id', [checkAuth, checkTeacherOrAdmin], async (req, res
 });
 
 // --- SUBMISSION ENDPOINTS ---
+// Enhanced evaluation endpoint with Multi-Agent, Plagiarism Detection, and Explainable AI
 app.post('/evaluate', checkAuth, upload.single('file'), async (req, res) => {
     try {
-        const { assignmentId, subjectId, teacherUid, isStrictMode } = req.body;
+        console.log('\n🚀 ===== ENHANCED EVALUATION SYSTEM V8.0 (BTech Gen AI Project) =====');
+        const { assignmentId, subjectId, teacherUid, isStrictMode, enableMultiAgent, enablePlagiarismCheck, enableExplainability } = req.body;
         const file = req.file;
 
         if (!file || !assignmentId || !subjectId || !teacherUid) {
             return res.status(400).json({ error: 'Missing required fields.' });
         }
 
+        // Fetch assignment details
         const assignmentDoc = await db.collection('assignments').doc(assignmentId).get();
         if (!assignmentDoc.exists) {
             return res.status(404).json({ error: 'Assignment not found.' });
@@ -521,13 +547,7 @@ app.post('/evaluate', checkAuth, upload.single('file'), async (req, res) => {
             return res.status(400).json({ error: 'The selected assignment is missing a valid rubric.' });
         }
 
-        const rubricContent = rubric.map(r => `- ${r.criterion} (${r.points} points)`).join('\n');
-        const totalPoints = rubric.reduce((sum, r) => sum + (Number(r.points) || 0), 0);
-        const jsonSchema = `{"score": "string (e.g., '8/${totalPoints}')","evaluation": "string (A brief, one-sentence summary.)","mistakes": "array of strings","feedback": "string (Detailed, constructive feedback.)"}`;
-        const persona = isStrictMode ? 'You are a strict, logical grading machine.' : 'You are a helpful and fair professor.';
-        const basePrompt = `${persona}\n\nEvaluate the student's submission for the question: "${question}".\nThe scoring guide is:\n${rubricContent}\n\nYou MUST respond with ONLY a valid JSON object following this schema:\n${jsonSchema}`;
-
-        const promptParts = [{ text: basePrompt }];
+        // Extract text from file
         let extractedText = '';
         let base64ImageForDb = null;
 
@@ -537,37 +557,136 @@ app.post('/evaluate', checkAuth, upload.single('file'), async (req, res) => {
             if (Buffer.byteLength(fullBase64Image, 'utf8') <= FIRESTORE_BYTE_LIMIT) {
                 base64ImageForDb = fullBase64Image;
             }
-            promptParts.push({ inlineData: { data: file.buffer.toString('base64'), mimeType: file.mimetype } });
+            // For images, we'll skip text-based features
+            console.log('📸 Image submission detected - using vision-based evaluation');
         } else if (file.mimetype === 'application/pdf') {
             extractedText = (await pdf(file.buffer)).text;
-            promptParts.push({ text: `\n\n--- STUDENT'S SUBMISSION TEXT ---\n${extractedText}` });
+            console.log(`📄 PDF processed: ${extractedText.length} characters extracted`);
         } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
             extractedText = (await mammoth.extractRawText({ buffer: file.buffer })).value;
-            promptParts.push({ text: `\n\n--- STUDENT'S SUBMISSION TEXT ---\n${extractedText}` });
+            console.log(`📝 DOCX processed: ${extractedText.length} characters extracted`);
         } else {
             return res.status(400).json({ error: 'Unsupported file type.' });
         }
 
-        const generationRequest = { contents: [{ role: "user", parts: promptParts }] };
-        const parsedFeedback = await callGenerativeAI(generationRequest, true);
+        // Initialize result object
+        let result = {
+            score: '',
+            evaluation: '',
+            mistakes: [],
+            feedback: '',
+            enhanced: true,
+            version: '8.0'
+        };
 
-        await db.collection('submissions').add({
+        // === FEATURE 1: MULTI-AGENT EVALUATION ===
+        if (enableMultiAgent !== 'false' && extractedText) {
+            console.log('\n🤖 Running Multi-Agent Evaluation System...');
+            try {
+                const multiAgentResult = await multiAgentEvaluator.evaluate(question, extractedText, rubric);
+                result = { ...result, ...multiAgentResult };
+                console.log(`✅ Multi-Agent Consensus: ${multiAgentResult.score}`);
+            } catch (error) {
+                console.error('❌ Multi-Agent evaluation failed:', error.message);
+                // Fallback to standard evaluation
+                result.multiAgent = { error: 'Multi-agent evaluation unavailable' };
+            }
+        } else if (!extractedText) {
+            console.log('⚠️ Image submission - using single-agent vision-based evaluation');
+            // Use traditional evaluation for images
+            const promptParts = [
+                { text: `You are a fair evaluator. Evaluate this submission for: "${question}"\n\nRubric:\n${rubric.map(r => `- ${r.criterion} (${r.points} pts)`).join('\n')}` },
+                { inlineData: { data: file.buffer.toString('base64'), mimeType: file.mimetype } }
+            ];
+            const generationRequest = { contents: [{ role: "user", parts: promptParts }] };
+            const feedback = await callGenerativeAI(generationRequest, true);
+            result = { ...result, ...feedback };
+        }
+
+        // === FEATURE 2: PLAGIARISM DETECTION ===
+        let plagiarismReport = null;
+        if (enablePlagiarismCheck !== 'false' && extractedText && extractedText.length > 50) {
+            console.log('\n🔍 Running Plagiarism Detection...');
+            try {
+                // Fetch past submissions for the same assignment
+                const pastSubmissionsSnapshot = await db.collection('submissions')
+                    .where('assignmentId', '==', assignmentId)
+                    .where('userId', '!=', req.user.uid) // Exclude current user's past submissions
+                    .get();
+
+                const pastSubmissions = pastSubmissionsSnapshot.docs
+                    .map(doc => {
+                        const data = doc.data();
+                        return {
+                            id: doc.id,
+                            text: data.extractedText || data.question,
+                            studentEmail: data.studentEmail || 'Unknown',
+                            date: data.createdAt?.toDate?.() || new Date()
+                        };
+                    })
+                    .filter(s => s.text && s.text.length > 50);
+
+                plagiarismReport = await plagiarismDetector.checkPlagiarism(extractedText, pastSubmissions);
+                console.log(`✅ Plagiarism Check: ${plagiarismReport.verdict.verdict}`);
+            } catch (error) {
+                console.error('❌ Plagiarism check failed:', error.message);
+                plagiarismReport = { error: 'Plagiarism detection unavailable' };
+            }
+        }
+
+        // === FEATURE 3: EXPLAINABLE AI ===
+        let explainability = null;
+        if (enableExplainability !== 'false' && extractedText) {
+            console.log('\n🔍 Generating Explainable AI Analysis...');
+            try {
+                explainability = await explainableAI.explain(question, extractedText, rubric, result);
+                console.log(`✅ Explainability: ${explainability.summary.stepsAnalyzed} reasoning steps generated`);
+            } catch (error) {
+                console.error('❌ Explainability generation failed:', error.message);
+                explainability = { error: 'Explainability unavailable' };
+            }
+        }
+
+        // Save submission to database
+        const submissionData = {
             userId: req.user.uid,
             assignmentId,
-            question,
-            aiFeedback: parsedFeedback,
-            mode: isStrictMode ? 'Strict' : 'General',
             subjectId,
             teacherUid,
+            question,
+            aiFeedback: result,
+            mode: isStrictMode === 'true' ? 'Strict' : enableMultiAgent !== 'false' ? 'Multi-Agent' : 'General',
             base64Image: base64ImageForDb,
             fileName: file.originalname,
             fileType: file.mimetype,
             extractedText: extractedText,
+            plagiarismReport: plagiarismReport,
+            explainability: explainability,
+            enhancedFeatures: {
+                multiAgent: enableMultiAgent !== 'false',
+                plagiarismCheck: enablePlagiarismCheck !== 'false',
+                explainableAI: enableExplainability !== 'false'
+            },
             createdAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        await db.collection('submissions').add(submissionData);
+
+        console.log('\n✅ ===== EVALUATION COMPLETE =====\n');
+
+        // Return comprehensive result
+        res.status(200).json({
+            ...result,
+            plagiarismReport,
+            explainability: explainability ? {
+                available: true,
+                confidence: explainability.summary?.confidenceLevel,
+                stepsAnalyzed: explainability.summary?.stepsAnalyzed
+            } : null
         });
-        res.status(200).json(parsedFeedback);
+
     } catch (error) {
-        console.error("Detailed error during evaluation:", error);
+        console.error("❌ Detailed error during evaluation:", error);
         res.status(500).json({ error: error.message || 'An internal server error occurred during evaluation.' });
     }
 });
@@ -770,6 +889,161 @@ app.post('/submissions/:id/comments', checkAuth, async (req, res) => {
     } catch (error) {
         console.error("Error posting comment:", error);
         res.status(500).json({ error: "Failed to post comment." });
+    }
+});
+
+// --- ENHANCED FEATURES ENDPOINTS (BTech Gen AI Project) ---
+
+// Get detailed plagiarism report for a submission
+app.get('/submissions/:id/plagiarism', checkAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const doc = await db.collection('submissions').doc(id).get();
+        
+        if (!doc.exists) {
+            return res.status(404).json({ error: 'Submission not found.' });
+        }
+
+        const submissionData = doc.data();
+        const { role, uid } = req.user;
+
+        // Check permissions
+        if (!(role === 'admin' || (role === 'teacher' && submissionData.teacherUid === uid) || submissionData.userId === uid)) {
+            return res.status(403).json({ error: 'Forbidden.' });
+        }
+
+        if (!submissionData.plagiarismReport) {
+            return res.status(404).json({ error: 'No plagiarism report available for this submission.' });
+        }
+
+        res.status(200).json(submissionData.plagiarismReport);
+    } catch (error) {
+        console.error("Error fetching plagiarism report:", error);
+        res.status(500).json({ error: "Failed to fetch plagiarism report." });
+    }
+});
+
+// Get detailed explainability data for a submission
+app.get('/submissions/:id/explainability', checkAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const doc = await db.collection('submissions').doc(id).get();
+        
+        if (!doc.exists) {
+            return res.status(404).json({ error: 'Submission not found.' });
+        }
+
+        const submissionData = doc.data();
+        const { role, uid } = req.user;
+
+        // Check permissions
+        if (!(role === 'admin' || (role === 'teacher' && submissionData.teacherUid === uid) || submissionData.userId === uid)) {
+            return res.status(403).json({ error: 'Forbidden.' });
+        }
+
+        if (!submissionData.explainability) {
+            return res.status(404).json({ error: 'No explainability data available for this submission.' });
+        }
+
+        res.status(200).json(submissionData.explainability);
+    } catch (error) {
+        console.error("Error fetching explainability data:", error);
+        res.status(500).json({ error: "Failed to fetch explainability data." });
+    }
+});
+
+// Recheck plagiarism for a specific submission (teacher/admin only)
+app.post('/submissions/:id/recheck-plagiarism', [checkAuth, checkTeacherOrAdmin], async (req, res) => {
+    try {
+        const { id } = req.params;
+        const doc = await db.collection('submissions').doc(id).get();
+        
+        if (!doc.exists) {
+            return res.status(404).json({ error: 'Submission not found.' });
+        }
+
+        const submissionData = doc.data();
+        const { role, uid } = req.user;
+
+        // Check permissions
+        if (!(role === 'admin' || (role === 'teacher' && submissionData.teacherUid === uid))) {
+            return res.status(403).json({ error: 'Forbidden.' });
+        }
+
+        if (!submissionData.extractedText || submissionData.extractedText.length < 50) {
+            return res.status(400).json({ error: 'Cannot check plagiarism for this submission type.' });
+        }
+
+        console.log(`🔄 Rechecking plagiarism for submission ${id}...`);
+
+        // Fetch past submissions
+        const pastSubmissionsSnapshot = await db.collection('submissions')
+            .where('assignmentId', '==', submissionData.assignmentId)
+            .where('userId', '!=', submissionData.userId)
+            .get();
+
+        const pastSubmissions = pastSubmissionsSnapshot.docs
+            .filter(d => d.id !== id) // Exclude current submission
+            .map(d => {
+                const data = d.data();
+                return {
+                    id: d.id,
+                    text: data.extractedText || data.question,
+                    studentEmail: data.studentEmail || 'Unknown',
+                    date: data.createdAt?.toDate?.() || new Date()
+                };
+            })
+            .filter(s => s.text && s.text.length > 50);
+
+        const plagiarismReport = await plagiarismDetector.checkPlagiarism(
+            submissionData.extractedText,
+            pastSubmissions
+        );
+
+        // Update submission with new report
+        await db.collection('submissions').doc(id).update({
+            plagiarismReport,
+            lastPlagiarismCheck: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        console.log(`✅ Plagiarism recheck complete: ${plagiarismReport.verdict.verdict}`);
+
+        res.status(200).json({
+            message: 'Plagiarism check completed',
+            report: plagiarismReport
+        });
+    } catch (error) {
+        console.error("Error rechecking plagiarism:", error);
+        res.status(500).json({ error: "Failed to recheck plagiarism." });
+    }
+});
+
+// Get multi-agent evaluation breakdown for a submission
+app.get('/submissions/:id/multi-agent', checkAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const doc = await db.collection('submissions').doc(id).get();
+        
+        if (!doc.exists) {
+            return res.status(404).json({ error: 'Submission not found.' });
+        }
+
+        const submissionData = doc.data();
+        const { role, uid } = req.user;
+
+        // Check permissions
+        if (!(role === 'admin' || (role === 'teacher' && submissionData.teacherUid === uid) || submissionData.userId === uid)) {
+            return res.status(403).json({ error: 'Forbidden.' });
+        }
+
+        if (!submissionData.aiFeedback?.multiAgent) {
+            return res.status(404).json({ error: 'No multi-agent evaluation data available.' });
+        }
+
+        res.status(200).json(submissionData.aiFeedback.multiAgent);
+    } catch (error) {
+        console.error("Error fetching multi-agent data:", error);
+        res.status(500).json({ error: "Failed to fetch multi-agent evaluation data." });
     }
 });
 

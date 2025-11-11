@@ -20,6 +20,18 @@ interface SubmissionSummary {
   score: string;
   teacherReviewed: boolean;
   date: string;
+  enhancedFeatures?: {
+    multiAgent: boolean;
+    plagiarismCheck: boolean;
+    explainableAI: boolean;
+  };
+  plagiarismReport?: {
+    verdict: {
+      severity: string;
+      overallScore: string;
+      color: string;
+    };
+  };
 }
 
 // This type represents the full data object, matching what SubmissionDetailModal expects.
@@ -162,15 +174,50 @@ const AllSubmissionsView = () => {
                   >
                     <td className="px-6 py-4">
                       <div>
-                        <div className="flex items-center">
+                        <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-gray-500 mr-2" />
                           <span className="text-sm font-medium text-gray-200 font-mono">
                             {submission.studentEmail}
                           </span>
+                          {submission.enhancedFeatures && (
+                            submission.enhancedFeatures.multiAgent || 
+                            submission.enhancedFeatures.plagiarismCheck || 
+                            submission.enhancedFeatures.explainableAI
+                          ) && (
+                            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 text-xs rounded border border-purple-500/30">
+                              ✨
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-gray-400 mt-1 font-body">
                           {submission.question}
                         </p>
+                        {submission.enhancedFeatures && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {submission.enhancedFeatures.multiAgent && (
+                              <span className="px-1.5 py-0.5 bg-purple-500/10 text-purple-300 text-xs rounded border border-purple-500/20">
+                                🤖
+                              </span>
+                            )}
+                            {submission.enhancedFeatures.plagiarismCheck && submission.plagiarismReport && (
+                              <span 
+                                className="px-1.5 py-0.5 text-xs rounded border font-mono"
+                                style={{
+                                  backgroundColor: `${submission.plagiarismReport.verdict.color}10`,
+                                  borderColor: `${submission.plagiarismReport.verdict.color}30`,
+                                  color: submission.plagiarismReport.verdict.color
+                                }}
+                              >
+                                🔍{submission.plagiarismReport.verdict.overallScore}%
+                              </span>
+                            )}
+                            {submission.enhancedFeatures.explainableAI && (
+                              <span className="px-1.5 py-0.5 bg-blue-500/10 text-blue-300 text-xs rounded border border-blue-500/20">
+                                💡
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
