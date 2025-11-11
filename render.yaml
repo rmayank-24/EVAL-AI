@@ -1,0 +1,17 @@
+services:
+  # Backend Service
+  - type: web
+    name: eval-ai-backend
+    env: node
+    region: oregon
+    buildCommand: cd backend && npm install --legacy-peer-deps
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_KEY
+        sync: false
+    healthCheckPath: /
+
