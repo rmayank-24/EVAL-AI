@@ -32,21 +32,36 @@ class ApiService {
     const url = `${API_BASE_URL}${endpoint}`;
     const headers = await this.getAuthHeaders();
 
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...headers,
-        ...options.headers,
-      },
-    });
+    // Add timeout (30 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(error.error || `HTTP ${response.status}`);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...headers,
+          ...options.headers,
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+
+      const contentType = response.headers.get("content-type");
+      return contentType?.includes("application/json") ? response.json() : undefined;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - server took too long to respond');
+      }
+      throw error;
     }
-
-    const contentType = response.headers.get("content-type");
-    return contentType?.includes("application/json") ? response.json() : undefined;
   }
 
   async uploadRequest(endpoint: string, formData: FormData) {

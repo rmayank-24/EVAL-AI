@@ -34,8 +34,15 @@ const AnalyticsView = () => {
       try {
         const data = await apiService.getAnalyticsReport();
         setReport(data);
-      } catch (error) {
-        showError('Failed to fetch analytics report');
+      } catch (error: any) {
+        console.error('Analytics fetch error:', error);
+        showError(error.message || 'Failed to fetch analytics report');
+        // Set default empty report on error
+        setReport({
+          stats: { totalSubmissions: 0, averageScore: 0, reviewedCount: 0 },
+          aiSummary: "Unable to load analytics. Please try generating a new report.",
+          generatedAt: new Date().toISOString()
+        });
       } finally {
         setLoading(false);
       }
