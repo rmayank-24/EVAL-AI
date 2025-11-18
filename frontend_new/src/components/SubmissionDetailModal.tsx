@@ -148,16 +148,16 @@ const SubmissionDetailModal = ({ submission, isOpen, onClose, onUpdate }: Submis
   const TabButton = ({ id, label, icon, badge, isActive, onClick }: any) => (
     <button
       onClick={onClick}
-      className={`relative flex items-center gap-2 px-4 py-3 font-medium text-sm transition-all ${
+      className={`relative flex items-center gap-3 px-6 py-4 font-medium text-base transition-all whitespace-nowrap ${
         isActive
           ? 'text-white bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border-b-2 border-cyan-400'
           : 'text-gray-400 hover:text-white hover:bg-white/5'
       }`}
     >
-      {icon}
-      <span>{label}</span>
+      <span className="flex-shrink-0">{icon}</span>
+      <span className="font-semibold">{label}</span>
       {badge && (
-        <span className="ml-1 px-2 py-0.5 bg-purple-500/30 text-purple-200 text-xs rounded-full">
+        <span className="ml-1 px-2.5 py-1 bg-purple-500/30 text-purple-200 text-xs rounded-full font-medium">
           {badge}
         </span>
       )}
@@ -221,12 +221,12 @@ const SubmissionDetailModal = ({ submission, isOpen, onClose, onUpdate }: Submis
             </div>
 
             {/* Tabs Navigation */}
-            <div className="border-b border-white/10 bg-gray-900/50 overflow-x-auto">
-              <nav className="flex">
+            <div className="border-b-2 border-white/10 bg-gradient-to-r from-gray-900/80 to-gray-800/80 backdrop-blur-sm overflow-x-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
+              <nav className="flex min-w-max px-2">
                 <TabButton
                   id="evaluation"
                   label="Evaluation"
-                  icon={<Award className="w-4 h-4" />}
+                  icon={<Award className="w-5 h-5" />}
                   isActive={activeTab === 'evaluation'}
                   onClick={() => setActiveTab('evaluation')}
                 />
@@ -234,7 +234,7 @@ const SubmissionDetailModal = ({ submission, isOpen, onClose, onUpdate }: Submis
                   <TabButton
                     id="multiAgent"
                     label="Multi-Agent"
-                    icon={<Sparkles className="w-4 h-4" />}
+                    icon={<Sparkles className="w-5 h-5" />}
                     badge="🤖"
                     isActive={activeTab === 'multiAgent'}
                     onClick={() => setActiveTab('multiAgent')}
@@ -244,7 +244,7 @@ const SubmissionDetailModal = ({ submission, isOpen, onClose, onUpdate }: Submis
                   <TabButton
                     id="plagiarism"
                     label="Plagiarism"
-                    icon={<Shield className="w-4 h-4" />}
+                    icon={<Shield className="w-5 h-5" />}
                     badge={plagiarismData?.verdict?.severity === 'critical' ? '⚠️' : '✓'}
                     isActive={activeTab === 'plagiarism'}
                     onClick={() => setActiveTab('plagiarism')}
@@ -254,7 +254,7 @@ const SubmissionDetailModal = ({ submission, isOpen, onClose, onUpdate }: Submis
                   <TabButton
                     id="explainability"
                     label="Explainability"
-                    icon={<Brain className="w-4 h-4" />}
+                    icon={<Brain className="w-5 h-5" />}
                     isActive={activeTab === 'explainability'}
                     onClick={() => setActiveTab('explainability')}
                   />
@@ -262,7 +262,7 @@ const SubmissionDetailModal = ({ submission, isOpen, onClose, onUpdate }: Submis
                 <TabButton
                   id="comments"
                   label="Discussion"
-                  icon={<MessageCircle className="w-4 h-4" />}
+                  icon={<MessageCircle className="w-5 h-5" />}
                   isActive={activeTab === 'comments'}
                   onClick={() => setActiveTab('comments')}
                 />
@@ -270,7 +270,7 @@ const SubmissionDetailModal = ({ submission, isOpen, onClose, onUpdate }: Submis
             </div>
 
             {/* Tab Content */}
-            <div className="p-6 overflow-y-auto flex-1 bg-[#0A0F18]">
+            <div className="p-8 overflow-y-auto flex-1 bg-[#0A0F18] max-h-[calc(100vh-300px)]">
               {loadingEnhancedData && activeTab !== 'evaluation' && (
                 <div className="flex items-center justify-center h-64">
                   <LoadingSpinner text="Loading enhanced data..." />
@@ -558,6 +558,25 @@ const SubmissionDetailModal = ({ submission, isOpen, onClose, onUpdate }: Submis
           )}
         </motion.div>
       )}
+      
+      {/* Custom Scrollbar Styles */}
+      <style>{`
+        .scrollbar-thin::-webkit-scrollbar {
+          height: 8px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: rgba(17, 24, 39, 0.5);
+          border-radius: 4px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: rgba(107, 114, 128, 0.8);
+          border-radius: 4px;
+          transition: background 0.2s;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: rgba(156, 163, 175, 0.9);
+        }
+      `}</style>
     </AnimatePresence>
   );
 };
