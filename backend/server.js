@@ -20,9 +20,36 @@ const RAGGrading = require('./modules/ragGrading');
 // 2. Initialize Express App and configure middleware
 const app = express();
 const PORT = process.env.PORT || 8000;
+// Enhanced CORS configuration for production
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173', 'http://localhost:5174', 'https://eval-50qea5ca9-mayanks-projects-fd92aa30.vercel.app', 'https://eval-ai-beta.vercel.app'],
-    credentials: true
+    origin: function(origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin) return callback(null, true);
+        
+        const allowedOrigins = [
+            'http://localhost:5173',
+            'http://localhost:3000',
+            'http://localhost:4173',
+            'http://localhost:5174',
+            'https://eval-50qea5ca9-mayanks-projects-fd92aa30.vercel.app',
+            'https://eval-ai-beta.vercel.app'
+        ];
+        
+        // Allow any Vercel preview deployment
+        if (origin.includes('.vercel.app')) {
+            return callback(null, true);
+        }
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('CORS blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
