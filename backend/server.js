@@ -13,7 +13,7 @@ const mammoth = require('mammoth');
 
 // Import custom Gen AI modules (BTech Project Features)
 const MultiAgentEvaluator = require('./modules/multiAgentEvaluator');
-const PlagiarismDetector = require('./modules/plagiarismDetector');
+const AdvancedPlagiarismDetector = require('./modules/advancedPlagiarismDetector');
 const ExplainableAI = require('./modules/explainableAI');
 const RAGGrading = require('./modules/ragGrading');
 
@@ -70,12 +70,12 @@ try {
 let multiAgentEvaluator, plagiarismDetector, explainableAI, ragGrading;
 try {
     multiAgentEvaluator = new MultiAgentEvaluator(process.env.GOOGLE_API_KEY);
-    plagiarismDetector = new PlagiarismDetector(process.env.GOOGLE_API_KEY);
+    plagiarismDetector = new AdvancedPlagiarismDetector(process.env.GOOGLE_API_KEY);
     explainableAI = new ExplainableAI(process.env.GOOGLE_API_KEY);
     ragGrading = new RAGGrading();
     console.log("✨ Custom Gen AI modules initialized successfully.");
     console.log("   - Multi-Agent Evaluation System");
-    console.log("   - Plagiarism Detection");
+    console.log("   - Advanced Plagiarism Detection (Production-Grade)");
     console.log("   - Explainable AI");
     console.log("   - RAG-Enhanced Grading");
 } catch (error) {
@@ -528,7 +528,7 @@ app.delete('/assignments/:id', [checkAuth, checkTeacherOrAdmin], async (req, res
 app.post('/evaluate', checkAuth, upload.single('file'), async (req, res) => {
     try {
         console.log('\n🚀 ===== ENHANCED EVALUATION SYSTEM V8.0 (BTech Gen AI Project) =====');
-        const { assignmentId, subjectId, teacherUid, isStrictMode, enableMultiAgent, enablePlagiarismCheck, enableExplainability } = req.body;
+        const { assignmentId, subjectId, teacherUid, isStrictMode, enableMultiAgent, enablePlagiarismCheck, enableExplainability, enableInternetCheck } = req.body;
         const file = req.file;
 
         if (!file || !assignmentId || !subjectId || !teacherUid) {
@@ -626,8 +626,21 @@ app.post('/evaluate', checkAuth, upload.single('file'), async (req, res) => {
                     })
                     .filter(s => s.text && s.text.length > 50);
 
-                plagiarismReport = await plagiarismDetector.checkPlagiarism(extractedText, pastSubmissions);
+                plagiarismReport = await plagiarismDetector.checkPlagiarism(
+                    extractedText, 
+                    pastSubmissions,
+                    { 
+                        timestamp: new Date().toISOString(),
+                        studentId: req.user.uid
+                    },
+                    { 
+                        checkInternet: enableInternetCheck === 'true' // Enable FREE internet check!
+                    }
+                );
                 console.log(`✅ Plagiarism Check: ${plagiarismReport.verdict.verdict}`);
+                if (plagiarismReport.internet && plagiarismReport.internet.checked) {
+                    console.log(`🌐 Internet Check: ${plagiarismReport.internet.internetMatches} sources found`);
+                }
             } catch (error) {
                 console.error('❌ Plagiarism check failed:', error.message);
                 plagiarismReport = { error: 'Plagiarism detection unavailable' };
@@ -665,7 +678,8 @@ app.post('/evaluate', checkAuth, upload.single('file'), async (req, res) => {
             enhancedFeatures: {
                 multiAgent: enableMultiAgent !== 'false',
                 plagiarismCheck: enablePlagiarismCheck !== 'false',
-                explainableAI: enableExplainability !== 'false'
+                explainableAI: enableExplainability !== 'false',
+                internetCheck: enableInternetCheck === 'true'
             },
             createdAt: admin.firestore.FieldValue.serverTimestamp()
         };

@@ -44,6 +44,7 @@ const EvaluatorPage = () => {
   const [enableMultiAgent, setEnableMultiAgent] = useState(true);
   const [enablePlagiarism, setEnablePlagiarism] = useState(true);
   const [enableExplainability, setEnableExplainability] = useState(true);
+  const [enableInternetCheck, setEnableInternetCheck] = useState(false); // FREE internet plagiarism check!
   
   const [loading, setLoading] = useState(false);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
@@ -128,6 +129,7 @@ const EvaluatorPage = () => {
       formData.append('enableMultiAgent', String(enableMultiAgent));
       formData.append('enablePlagiarismCheck', String(enablePlagiarism));
       formData.append('enableExplainability', String(enableExplainability));
+      formData.append('enableInternetCheck', String(enableInternetCheck));
 
       const result = await apiService.submitEvaluation(formData);
       setFeedback(result);
@@ -214,6 +216,24 @@ const EvaluatorPage = () => {
                 className="w-5 h-5 text-cyan-600 bg-gray-700 border-gray-600 rounded focus:ring-cyan-500"
               />
             </div>
+
+            {enablePlagiarism && (
+              <div className="flex items-center justify-between bg-gradient-to-r from-emerald-900/20 to-teal-900/20 p-3 rounded-lg border border-emerald-500/30 ml-4">
+                <div>
+                  <label htmlFor="internetCheck" className="text-sm font-medium text-emerald-300 font-body block">
+                    🌐 Internet Plagiarism Check <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded">FREE</span>
+                  </label>
+                  <p className="text-xs text-gray-400 mt-1">DuckDuckGo + Wikipedia (adds 15-30s)</p>
+                </div>
+                <input
+                  type="checkbox"
+                  id="internetCheck"
+                  checked={enableInternetCheck}
+                  onChange={(e) => setEnableInternetCheck(e.target.checked)}
+                  className="w-5 h-5 text-emerald-600 bg-gray-700 border-gray-600 rounded focus:ring-emerald-500"
+                />
+              </div>
+            )}
 
             <div className="flex items-center justify-between bg-gray-800/30 p-3 rounded-lg border border-white/10">
               <div>
