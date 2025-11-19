@@ -386,7 +386,7 @@ const PlagiarismReport = ({ report, submissionId, onRecheck, isRechecking = fals
               <Info className="w-16 h-16 mx-auto mb-4 text-gray-500 opacity-50" />
               <h3 className="text-lg font-bold text-white mb-2">Internet Check Not Enabled</h3>
               <p className="text-gray-400 mb-4">This submission was not checked against internet sources.</p>
-              <p className="text-sm text-gray-500">Enable "Internet Plagiarism Check" when submitting to scan DuckDuckGo and Wikipedia.</p>
+              <p className="text-sm text-gray-500">Enable "Internet Plagiarism Check" when submitting to scan Wikipedia, Semantic Scholar, and ArXiv (100% FREE!).</p>
             </div>
           ) : (report as any).internet.checked && (report as any).internet.matches && (report as any).internet.matches.length > 0 ? (
             <>
@@ -499,8 +499,8 @@ const PlagiarismReport = ({ report, submissionId, onRecheck, isRechecking = fals
             <div className="text-center py-12 bg-green-500/10 rounded-xl border border-green-500/30">
               <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-400" />
               <h3 className="text-lg font-bold text-white mb-2">No Internet Sources Found</h3>
-              <p className="text-gray-300">The content does not match any sources on DuckDuckGo or Wikipedia.</p>
-              <p className="text-sm text-gray-400 mt-2">This is a good sign of original work!</p>
+              <p className="text-gray-300">The content does not match any sources on Wikipedia, Semantic Scholar, or ArXiv.</p>
+              <p className="text-sm text-gray-400 mt-2">This is a good sign of original work! ✅</p>
             </div>
           ) : (
             <div className="text-center py-12 bg-red-500/10 rounded-xl border border-red-500/30">

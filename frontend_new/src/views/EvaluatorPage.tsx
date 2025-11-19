@@ -223,7 +223,7 @@ const EvaluatorPage = () => {
                   <label htmlFor="internetCheck" className="text-sm font-medium text-emerald-300 font-body block">
                     🌐 Internet Plagiarism Check <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded">FREE</span>
                   </label>
-                  <p className="text-xs text-gray-400 mt-1">DuckDuckGo + Wikipedia (adds 15-30s)</p>
+                  <p className="text-xs text-gray-400 mt-1">Wikipedia + Semantic Scholar + ArXiv (adds 10-15s)</p>
                 </div>
                 <input
                   type="checkbox"
