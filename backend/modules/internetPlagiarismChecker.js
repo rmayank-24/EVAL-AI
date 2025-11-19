@@ -49,16 +49,29 @@ class InternetPlagiarismChecker {
                 // Search on DuckDuckGo
                 const ddgResults = await this.searchDuckDuckGo(sentence);
                 
-                if (ddgResults.found) {
-                    matches.push({
-                        sentence: sentence,
-                        source: 'DuckDuckGo',
-                        results: ddgResults.results,
-                        confidence: this.calculateConfidence(sentence, ddgResults.results)
+                if (ddgResults.found && ddgResults.results.length > 0) {
+                    // Log detailed results for debugging
+                    console.log(`      ✅ Found ${ddgResults.results.length} DuckDuckGo results`);
+                    ddgResults.results.forEach((r, idx) => {
+                        console.log(`         ${idx + 1}. ${r.title} (similarity: ${(r.similarity * 100).toFixed(1)}%)`);
                     });
-                    console.log(`      ✅ Found ${ddgResults.results.length} potential matches`);
+                    
+                    // Filter results by similarity threshold (LOWERED to 0.3 = 30%)
+                    const relevantResults = ddgResults.results.filter(r => r.similarity >= 0.3);
+                    
+                    if (relevantResults.length > 0) {
+                        matches.push({
+                            sentence: sentence,
+                            source: 'DuckDuckGo',
+                            results: relevantResults,
+                            confidence: this.calculateConfidence(sentence, relevantResults)
+                        });
+                        console.log(`      ✅ Added ${relevantResults.length} matches (similarity >= 30%)`);
+                    } else {
+                        console.log(`      ⚠️ Results found but all below 30% similarity threshold`);
+                    }
                 } else {
-                    console.log(`      ❌ No matches found`);
+                    console.log(`      ❌ No DuckDuckGo results found (might be blocked or no matches)`);
                 }
                 
                 // Respect rate limits
@@ -106,8 +119,10 @@ class InternetPlagiarismChecker {
         try {
             await this.respectRateLimit();
             
-            // DuckDuckGo HTML search
+            // DuckDuckGo HTML search (exact phrase)
             const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent('"' + query + '"')}`;
+            
+            console.log(`      🔍 Searching DuckDuckGo...`);
             
             const response = await axios.get(searchUrl, {
                 headers: {
@@ -123,30 +138,47 @@ class InternetPlagiarismChecker {
                 maxRedirects: 5
             });
             
+            console.log(`      📄 Response received (${response.status}), parsing HTML...`);
+            
             const $ = cheerio.load(response.data);
             const results = [];
             
-            // Parse DuckDuckGo results
-            $('.result').each((i, element) => {
-                if (i >= 5) return false; // Top 5 results only
+            // Try multiple selectors (DuckDuckGo HTML structure varies)
+            const resultSelectors = ['.result', '.results_links', '.web-result'];
+            let foundResults = false;
+            
+            for (const selector of resultSelectors) {
+                $(selector).each((i, element) => {
+                    if (i >= 5) return false; // Top 5 results only
+                    
+                    const $el = $(element);
+                    const titleElement = $el.find('.result__a, .result__title a, .result-link');
+                    const snippetElement = $el.find('.result__snippet, .result__body, .result-snippet');
+                    const urlElement = $el.find('.result__url, .result-link');
+                    
+                    const title = titleElement.text().trim();
+                    const snippet = snippetElement.text().trim();
+                    const url = titleElement.attr('href') || urlElement.attr('href') || urlElement.text().trim();
+                    
+                    if (title && url) {
+                        foundResults = true;
+                        const similarity = this.calculateSnippetSimilarity(query, snippet);
+                        results.push({
+                            title: title,
+                            url: this.cleanUrl(url),
+                            snippet: snippet || '(No snippet available)',
+                            similarity: similarity
+                        });
+                    }
+                });
                 
-                const titleElement = $(element).find('.result__a');
-                const snippetElement = $(element).find('.result__snippet');
-                const urlElement = $(element).find('.result__url');
-                
-                const title = titleElement.text().trim();
-                const snippet = snippetElement.text().trim();
-                const url = titleElement.attr('href') || urlElement.text().trim();
-                
-                if (title && url) {
-                    results.push({
-                        title: title,
-                        url: this.cleanUrl(url),
-                        snippet: snippet,
-                        similarity: this.calculateSnippetSimilarity(query, snippet)
-                    });
-                }
-            });
+                if (foundResults) break; // Found results with this selector
+            }
+            
+            if (results.length === 0) {
+                console.log(`      ⚠️ DuckDuckGo returned HTML but no results parsed`);
+                console.log(`      💡 Possible causes: Blocked, CAPTCHA, or HTML structure changed`);
+            }
             
             return {
                 found: results.length > 0,
@@ -154,7 +186,12 @@ class InternetPlagiarismChecker {
             };
             
         } catch (error) {
-            console.error('   ⚠️ DuckDuckGo search failed:', error.message);
+            console.error(`      ❌ DuckDuckGo error: ${error.message}`);
+            if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+                console.error(`      💡 Network issue - check internet connection`);
+            } else if (error.response && error.response.status === 403) {
+                console.error(`      💡 Access forbidden - DuckDuckGo might be blocking requests`);
+            }
             return { found: false, results: [] };
         }
     }
