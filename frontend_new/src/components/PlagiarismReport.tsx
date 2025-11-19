@@ -115,9 +115,19 @@ const PlagiarismReport = ({ report, submissionId, onRecheck, isRechecking = fals
     );
   }
 
+  // DEBUG: Log the report structure
+  console.log('🔍 DEBUG Plagiarism Report:', {
+    noComparisons: report.noComparisons,
+    hasInternet: !!(report as any).internet,
+    internetData: (report as any).internet,
+    fullReport: report
+  });
+
   // Check if internet check was enabled (even if it found 0 matches)
   const internetCheckEnabled = (report as any).internet && 
     ((report as any).internet.checked === true || (report as any).internet.checked === false);
+
+  console.log('🔍 DEBUG internetCheckEnabled:', internetCheckEnabled);
 
   // Only show "First Submission" message if:
   // 1. No peer comparisons AND
