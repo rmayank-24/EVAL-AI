@@ -26,7 +26,7 @@ class FreeInternetChecker {
         this.geminiApiKey = geminiApiKey;
         if (this.geminiApiKey) {
             this.genAI = new GoogleGenerativeAI(this.geminiApiKey);
-            this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+            this.model = this.genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
         }
     }
 
