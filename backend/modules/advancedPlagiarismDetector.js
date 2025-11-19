@@ -635,7 +635,7 @@ class AdvancedPlagiarismDetector {
 
                 // 2. Style Analysis
                 console.log('\n✍️  Step 2: Analyzing writing style...');
-                const overallStyle = this.analyzeWritingStyle(submissionText);
+                overallStyle = this.analyzeWritingStyle(submissionText);
                 styleShifts = this.detectStyleShifts(submissionText);
                 console.log(`   Style consistency: ${styleShifts.consistent ? 'Consistent' : `${styleShifts.shifts.length} shifts detected`}`);
 
