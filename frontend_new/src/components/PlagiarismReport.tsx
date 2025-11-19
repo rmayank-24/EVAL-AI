@@ -115,18 +115,21 @@ const PlagiarismReport = ({ report, submissionId, onRecheck, isRechecking = fals
     );
   }
 
-  // Check if internet results are available
-  const hasInternetResults = (report as any).internet && 
-    ((report as any).internet.checked && (report as any).internet.matches && (report as any).internet.matches.length > 0);
+  // Check if internet check was enabled (even if it found 0 matches)
+  const internetCheckEnabled = (report as any).internet && 
+    ((report as any).internet.checked === true || (report as any).internet.checked === false);
 
-  // Only show "First Submission" if no comparisons AND no internet results
-  if (report.noComparisons && !hasInternetResults) {
+  // Only show "First Submission" message if:
+  // 1. No peer comparisons AND
+  // 2. Internet check was NOT enabled at all
+  // If internet check was enabled (even with 0 results), show the tabs
+  if (report.noComparisons && !internetCheckEnabled) {
     return (
       <div className="p-8 text-center">
         <CheckCircle className="w-16 h-16 mx-auto mb-4 text-blue-400" />
         <h3 className="text-xl font-bold text-white mb-2">First Submission</h3>
         <p className="text-gray-400">This is the first submission for this assignment.</p>
-        <p className="text-gray-400 mt-2">No peer comparisons or internet sources found.</p>
+        <p className="text-gray-400 mt-2">No peer comparisons available yet.</p>
       </div>
     );
   }
