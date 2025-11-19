@@ -1,24 +1,30 @@
 // Free Internet Plagiarism Checker for EVAL-AI
-// Uses DuckDuckGo HTML parsing (free, no API key needed)
+// Primary: Google Custom Search API (100 free/day)
+// Fallback: DuckDuckGo HTML parsing (free, no API key)
 
 const axios = require('axios');
 const cheerio = require('cheerio');
 const natural = require('natural');
+const GoogleSearchChecker = require('./googleSearchChecker');
 
 /**
  * Internet Plagiarism Checker (Free Version)
  * 
  * Features:
- * 1. DuckDuckGo search (no API key, no rate limits)
- * 2. Wikipedia API (official, free)
- * 3. arXiv API (academic papers, free)
+ * 1. Google Custom Search API (FREE - 100/day, most reliable)
+ * 2. DuckDuckGo search (fallback, no API key needed)
+ * 3. Wikipedia API (official, free)
  * 
- * No cost, no API keys, works out of the box!
+ * Setup Google API for better results (optional):
+ * See GOOGLE_SEARCH_API_SETUP.md
  */
 class InternetPlagiarismChecker {
     constructor() {
         this.tokenizer = new natural.SentenceTokenizer();
         this.userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+        
+        // Google Custom Search API (optional but recommended)
+        this.googleSearch = new GoogleSearchChecker();
         
         // Rate limiting
         this.lastRequestTime = 0;
@@ -46,23 +52,51 @@ class InternetPlagiarismChecker {
                 checked++;
                 console.log(`   [${checked}/${sentences.length}] Checking: "${sentence.substring(0, 60)}..."`);
                 
-                // Search on DuckDuckGo
-                const ddgResults = await this.searchDuckDuckGo(sentence);
+                let searchResults = null;
+                let searchSource = null;
                 
-                if (ddgResults.found && ddgResults.results.length > 0) {
-                    // Log detailed results for debugging
-                    console.log(`      ✅ Found ${ddgResults.results.length} DuckDuckGo results`);
-                    ddgResults.results.forEach((r, idx) => {
+                // PRIMARY: Try Google Custom Search API if configured
+                if (this.googleSearch.enabled) {
+                    console.log(`      📍 Using Google Custom Search API (recommended)`);
+                    const googleResults = await this.googleSearch.searchGoogle(sentence);
+                    
+                    if (googleResults.found && googleResults.results.length > 0) {
+                        searchResults = googleResults.results;
+                        searchSource = 'Google';
+                    } else if (googleResults.reason === 'quota_exceeded') {
+                        console.log(`      ⚠️ Google quota exceeded, falling back to DuckDuckGo`);
+                    }
+                    
+                    await this.delay(1000); // Google rate limit
+                }
+                
+                // FALLBACK: Use DuckDuckGo if Google not available or failed
+                if (!searchResults) {
+                    console.log(`      📍 Using DuckDuckGo (free fallback)`);
+                    const ddgResults = await this.searchDuckDuckGo(sentence);
+                    
+                    if (ddgResults.found && ddgResults.results.length > 0) {
+                        searchResults = ddgResults.results;
+                        searchSource = 'DuckDuckGo';
+                    }
+                    
+                    await this.delay(this.minDelay);
+                }
+                
+                // Process results
+                if (searchResults && searchResults.length > 0) {
+                    console.log(`      ✅ Found ${searchResults.length} ${searchSource} results`);
+                    searchResults.forEach((r, idx) => {
                         console.log(`         ${idx + 1}. ${r.title} (similarity: ${(r.similarity * 100).toFixed(1)}%)`);
                     });
                     
-                    // Filter results by similarity threshold (LOWERED to 0.3 = 30%)
-                    const relevantResults = ddgResults.results.filter(r => r.similarity >= 0.3);
+                    // Filter by similarity threshold (30%)
+                    const relevantResults = searchResults.filter(r => r.similarity >= 0.3);
                     
                     if (relevantResults.length > 0) {
                         matches.push({
                             sentence: sentence,
-                            source: 'DuckDuckGo',
+                            source: searchSource,
                             results: relevantResults,
                             confidence: this.calculateConfidence(sentence, relevantResults)
                         });
@@ -71,11 +105,8 @@ class InternetPlagiarismChecker {
                         console.log(`      ⚠️ Results found but all below 30% similarity threshold`);
                     }
                 } else {
-                    console.log(`      ❌ No DuckDuckGo results found (might be blocked or no matches)`);
+                    console.log(`      ❌ No results found from any source`);
                 }
-                
-                // Respect rate limits
-                await this.delay(this.minDelay);
             }
             
             // Also check Wikipedia for common knowledge
