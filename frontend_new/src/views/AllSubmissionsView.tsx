@@ -24,6 +24,7 @@ interface SubmissionSummary {
     multiAgent: boolean;
     plagiarismCheck: boolean;
     explainableAI: boolean;
+    internetCheck?: boolean;
   };
   plagiarismReport?: {
     verdict: {
@@ -182,7 +183,8 @@ const AllSubmissionsView = () => {
                           {submission.enhancedFeatures && (
                             submission.enhancedFeatures.multiAgent || 
                             submission.enhancedFeatures.plagiarismCheck || 
-                            submission.enhancedFeatures.explainableAI
+                            submission.enhancedFeatures.explainableAI ||
+                            submission.enhancedFeatures.internetCheck
                           ) && (
                             <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 text-xs rounded border border-purple-500/30">
                               ✨
@@ -209,6 +211,11 @@ const AllSubmissionsView = () => {
                                 }}
                               >
                                 🔍{submission.plagiarismReport.verdict.overallScore}%
+                              </span>
+                            )}
+                            {submission.enhancedFeatures.internetCheck && (
+                              <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-300 text-xs rounded border border-emerald-500/20">
+                                🌐
                               </span>
                             )}
                             {submission.enhancedFeatures.explainableAI && (

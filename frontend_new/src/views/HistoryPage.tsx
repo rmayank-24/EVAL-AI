@@ -18,6 +18,7 @@ interface Submission {
     multiAgent: boolean;
     plagiarismCheck: boolean;
     explainableAI: boolean;
+    internetCheck?: boolean;
   };
   plagiarismReport?: {
     verdict: {
@@ -121,7 +122,8 @@ const HistoryPage = () => {
                 {submission.enhancedFeatures && (
                   submission.enhancedFeatures.multiAgent || 
                   submission.enhancedFeatures.plagiarismCheck || 
-                  submission.enhancedFeatures.explainableAI
+                  submission.enhancedFeatures.explainableAI ||
+                  submission.enhancedFeatures.internetCheck
                 ) && (
                   <span className="ml-2 px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded border border-purple-500/30 whitespace-nowrap">
                     ✨ Enhanced
@@ -156,6 +158,11 @@ const HistoryPage = () => {
                       }}
                     >
                       🔍 {submission.plagiarismReport.verdict.overallScore}%
+                    </span>
+                  )}
+                  {submission.enhancedFeatures.internetCheck && (
+                    <span className="px-2 py-1 bg-emerald-500/10 text-emerald-300 text-xs rounded border border-emerald-500/20">
+                      🌐 Internet
                     </span>
                   )}
                   {submission.enhancedFeatures.explainableAI && (

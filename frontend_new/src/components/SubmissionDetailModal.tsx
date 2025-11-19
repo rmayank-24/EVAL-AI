@@ -206,6 +206,11 @@ const SubmissionDetailModal = ({ submission, isOpen, onClose, onUpdate }: Submis
                           🔍 Plagiarism
                         </span>
                       )}
+                      {submission.enhancedFeatures.internetCheck && (
+                        <span className="px-2 py-1 bg-emerald-500/20 text-emerald-300 text-xs rounded border border-emerald-500/30">
+                          🌐 Internet
+                        </span>
+                      )}
                       {submission.enhancedFeatures.explainableAI && (
                         <span className="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded border border-blue-500/30">
                           💡 Explainable
