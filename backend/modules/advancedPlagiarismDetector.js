@@ -709,7 +709,7 @@ class AdvancedPlagiarismDetector {
                 checked: true,
                 noComparisons: hasNoComparisons,  // Flag to indicate first submission
                 timestamp: new Date().toISOString(),
-                processingTime: `${processingTime}s`,
+                processingTime: `${totalProcessingTime}s`,
                 
                 // Overall metrics
                 overallScore: parseFloat(overallScore.toFixed(1)),
