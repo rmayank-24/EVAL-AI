@@ -9,7 +9,7 @@ const stringSimilarity = require('string-similarity');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const murmurhash = require('murmurhash');
 const diff = require('diff');
-const InternetPlagiarismChecker = require('./internetPlagiarismChecker');
+const FreeInternetChecker = require('./freeInternetChecker');
 
 /**
  * Advanced Plagiarism Detector
@@ -30,8 +30,8 @@ class AdvancedPlagiarismDetector {
         this.tokenizer = new natural.WordTokenizer();
         this.initialized = false;
         
-        // Initialize internet plagiarism checker (FREE!)
-        this.internetChecker = new InternetPlagiarismChecker();
+        // Initialize FREE internet plagiarism checker (Wikipedia + Semantic Scholar + ArXiv)
+        this.internetChecker = new FreeInternetChecker();
         
         // Detection thresholds
         this.thresholds = {
