@@ -9,16 +9,25 @@
 
 const axios = require('axios');
 const natural = require('natural');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 /**
  * Free Internet Plagiarism Checker
  * Uses only free, unlimited APIs - no Google, no DuckDuckGo scraping
+ * PLUS: Hidden Gemini-based source detection (not shown in UI)
  */
 class FreeInternetChecker {
-    constructor() {
+    constructor(geminiApiKey = null) {
         this.tokenizer = new natural.SentenceTokenizer();
         // Wikipedia requires proper User-Agent with contact info
         this.userAgent = 'EVAL-AI/1.0 (https://github.com/rmayank-24/EVAL-AI; Educational plagiarism detection) Node/axios';
+        
+        // Hidden Gemini plagiarism oracle (uses existing API key)
+        this.geminiApiKey = geminiApiKey;
+        if (this.geminiApiKey) {
+            this.genAI = new GoogleGenerativeAI(this.geminiApiKey);
+            this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        }
     }
 
     /**
@@ -67,9 +76,17 @@ class FreeInternetChecker {
                 console.log(`   ❌ No ArXiv matches`);
             }
             
+            // 4. HIDDEN CHECK: Gemini Oracle (runs silently in background)
+            console.log('\n🤖 [HIDDEN] Running Gemini plagiarism oracle...');
+            const geminiMatches = await this.checkWithGeminiOracle(text);
+            if (geminiMatches.length > 0) {
+                console.log(`   🎯 Gemini oracle identified ${geminiMatches.length} potential sources`);
+                allMatches.push(...geminiMatches);
+            }
+            
             const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
             console.log(`\n✅ ===== INTERNET CHECK COMPLETE in ${processingTime}s =====`);
-            console.log(`📊 Total matches: ${allMatches.length}\n`);
+            console.log(`📊 Total matches: ${allMatches.length} (including ${geminiMatches.length} AI-detected)\n`);
             
             return {
                 checked: true,
@@ -387,6 +404,89 @@ class FreeInternetChecker {
         return Array.from(sources.values())
             .sort((a, b) => b.matchCount - a.matchCount)
             .slice(0, 10);
+    }
+
+    /**
+     * Hidden Gemini Oracle: AI-powered plagiarism source detection
+     * Uses Gemini's knowledge to identify if text appears to be from known sources
+     * This runs in the background and enhances detection without being shown in UI
+     */
+    async checkWithGeminiOracle(text) {
+        if (!this.model) {
+            console.log('   ⚠️ Gemini oracle not available (no API key)');
+            return [];
+        }
+
+        try {
+            const prompt = `You are an expert plagiarism detector with knowledge of millions of online sources, Wikipedia articles, academic papers, and websites.
+
+Analyze the following text and determine if it appears to be copied or closely paraphrased from any known online sources:
+
+TEXT TO ANALYZE:
+"""
+${text.substring(0, 2000)}
+"""
+
+Your task:
+1. Identify if this text matches or closely resembles content from ANY known source (Wikipedia, websites, papers, etc.)
+2. If you recognize the source, provide specific details
+3. Rate the likelihood this is plagiarized (0-100%)
+
+Respond in JSON format ONLY:
+{
+    "isPlagiarized": true/false,
+    "confidence": 0-100,
+    "sources": [
+        {
+            "name": "Source name (e.g., 'Wikipedia: Red Fort', 'BBC News Article')",
+            "url": "URL if known, or 'unknown'",
+            "matchType": "exact_copy" | "close_paraphrase" | "suspected",
+            "matchedPhrases": ["phrase 1", "phrase 2"],
+            "likelihood": 0-100
+        }
+    ],
+    "reasoning": "Brief explanation of why you think this is/isn't plagiarized"
+}
+
+If the text appears original, return: {"isPlagiarized": false, "confidence": 0, "sources": [], "reasoning": "Appears to be original work"}`;
+
+            const result = await this.model.generateContent(prompt);
+            const response = result.response.text();
+            
+            // Parse JSON response
+            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) {
+                console.log('   ⚠️ Gemini oracle: Could not parse response');
+                return [];
+            }
+            
+            const analysis = JSON.parse(jsonMatch[0]);
+            
+            if (analysis.isPlagiarized && analysis.sources && analysis.sources.length > 0) {
+                console.log(`   🔍 Gemini oracle detected potential plagiarism (${analysis.confidence}% confidence)`);
+                console.log(`   📚 Identified sources: ${analysis.sources.map(s => s.name).join(', ')}`);
+                
+                // Convert to our match format
+                return analysis.sources.map(source => ({
+                    source: 'Gemini AI Detection',
+                    sentence: text.substring(0, 200) + '...',
+                    results: [{
+                        title: source.name,
+                        url: source.url !== 'unknown' ? source.url : `Detected: ${source.name}`,
+                        snippet: source.matchedPhrases.join(' ... '),
+                        similarity: source.likelihood / 100,
+                        matchType: source.matchType
+                    }]
+                }));
+            } else {
+                console.log(`   ✅ Gemini oracle: No plagiarism detected (${analysis.confidence}% confidence)`);
+                return [];
+            }
+            
+        } catch (error) {
+            console.log(`   ⚠️ Gemini oracle check failed: ${error.message}`);
+            return [];
+        }
     }
 
     /**

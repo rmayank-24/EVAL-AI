@@ -24,6 +24,7 @@ const FreeInternetChecker = require('./freeInternetChecker');
  */
 class AdvancedPlagiarismDetector {
     constructor(apiKey) {
+        this.apiKey = apiKey;
         this.genAI = new GoogleGenerativeAI(apiKey);
         this.model = this.genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
         this.embedder = null;
@@ -31,7 +32,8 @@ class AdvancedPlagiarismDetector {
         this.initialized = false;
         
         // Initialize FREE internet plagiarism checker (Wikipedia + Semantic Scholar + ArXiv)
-        this.internetChecker = new FreeInternetChecker();
+        // PLUS: Hidden Gemini oracle for enhanced detection (not shown in UI)
+        this.internetChecker = new FreeInternetChecker(apiKey);
         
         // Detection thresholds
         this.thresholds = {
