@@ -625,7 +625,7 @@ app.post('/evaluate', checkAuth, upload.single('file'), async (req, res) => {
                 { text: `You are a fair evaluator. Evaluate this submission for: "${question}"\n\nRubric:\n${rubric.map(r => `- ${r.criterion} (${r.points} pts)`).join('\n')}` },
                 { inlineData: { data: file.buffer.toString('base64'), mimeType: file.mimetype } }
             ];
-            const generationRequest = { contents: [{ role: "user", parts: promptParts }] };
+        const generationRequest = { contents: [{ role: "user", parts: promptParts }] };
             const feedback = await callGenerativeAI(generationRequest, true);
             result = { ...result, ...feedback };
         }

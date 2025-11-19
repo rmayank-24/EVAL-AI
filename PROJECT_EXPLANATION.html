@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EVAL-AI: Technical Documentation</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- MathJax for LaTeX -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- Mermaid.js for Diagrams -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+        window.mermaid = mermaid;
+    </script>
+    <style>
+        body {
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0; /* Slate 200 */
+            font-family: 'Inter', sans-serif;
+        }
+        .prose {
+            color: #cbd5e1;
+            max-width: 65ch;
+            margin: 0 auto;
+        }
+        .prose h1, .prose h2, .prose h3, .prose h4 {
+            color: #f8fafc;
+            font-weight: 700;
+        }
+        .prose h1 { font-size: 2.5rem; margin-bottom: 1rem; border-bottom: 1px solid #334155; padding-bottom: 0.5rem; }
+        .prose h2 { font-size: 1.8rem; margin-top: 2.5rem; margin-bottom: 1rem; border-bottom: 1px solid #1e293b; padding-bottom: 0.5rem; color: #38bdf8; }
+        .prose h3 { font-size: 1.4rem; margin-top: 2rem; color: #818cf8; }
+        .prose strong { color: #f1f5f9; }
+        .prose code { 
+            color: #f472b6; 
+            background-color: #1e293b; 
+            padding: 0.2em 0.4em; 
+            border-radius: 0.25rem; 
+            font-weight: 500;
+        }
+        .prose pre {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+        }
+        .prose pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        .prose blockquote {
+            border-left-color: #38bdf8;
+            background-color: #1e293b50;
+            padding: 1rem;
+            font-style: italic;
+        }
+        .prose ul > li::marker {
+            color: #38bdf8;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .math-block {
+            overflow-x: auto;
+            padding: 1rem;
+            background: #1e293b;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen p-8">
+
+    <div class="max-w-5xl mx-auto bg-slate-900/50 p-10 rounded-2xl shadow-2xl border border-slate-800">
+        <div id="content" class="prose prose-invert prose-lg max-w-none">
+            <!-- Content will be injected here -->
+            <div class="flex justify-center items-center h-64">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Raw Markdown Content -->
+    <script type="text/template" id="markdown-source">
+# EVAL-AI: Comprehensive Project Technical Explanation
+
+## 1. Project Overview
+**EVAL-AI** is an advanced, AI-powered educational assessment platform designed to automate and enhance the grading process for homework and assignments. Unlike simple wrappers around OpenAI or Gemini APIs, this project implements a sophisticated **Multi-Agent System** and **Hybrid Plagiarism Detection Engine** to provide human-level grading accuracy, detailed feedback, and academic integrity verification.
+
+The system serves three distinct user roles:
+- **Students**: Submit assignments, view grades, and receive detailed AI feedback.
+- **Teachers**: Create assignments, define rubrics, review AI grades, and override them if necessary.
+- **Admins**: Manage users, system settings, and view global analytics.
+
+---
+
+## 2. Technical Architecture & Stack
+
+### High-Level Architecture
+The application follows a modern **Client-Server-Database** architecture with a specialized **AI Processing Layer**.
+
+```mermaid
+graph TD
+    Client[Frontend React/Vite] <--> API[Backend API Express/Node.js]
+    API <--> DB[(Firebase Firestore)]
+    API <--> Auth[Firebase Auth]
+    API <--> AI_Layer[AI Processing Layer]
+    
+    subgraph "AI Processing Layer"
+        Agent1[Multi-Agent Evaluator]
+        Agent2[Plagiarism Detector]
+        Agent3[RAG Engine]
+        Agent4[Explainable AI]
+    end
+    
+    AI_Layer <--> LLM[Google Gemini Pro]
+    AI_Layer <--> VectorDB[Vector Store]
+```
+
+### Technology Stack
+*   **Frontend**: 
+    *   **React (v18)**: Component-based UI library.
+    *   **TypeScript**: Static typing for reliability.
+    *   **Vite**: Next-generation build tool for fast development.
+    *   **TailwindCSS**: Utility-first CSS framework for styling.
+*   **Backend**: 
+    *   **Node.js**: JavaScript runtime environment.
+    *   **Express.js**: Web framework for RESTful APIs.
+*   **Database & Auth**: 
+    *   **Firebase Firestore**: NoSQL cloud database for real-time data syncing.
+    *   **Firebase Authentication**: Secure user identity management.
+*   **AI & ML**:
+    *   **Google Gemini Pro**: Large Language Model (LLM) for reasoning and generation.
+    *   **Sentence-BERT**: Transformer model for generating semantic text embeddings.
+    *   **LangChain**: Framework for chaining AI components (used conceptually in custom modules).
+
+---
+
+## 3. Key Technical Concepts & Definitions
+
+To understand the "Advanced" part of this project, we must define the core technologies used:
+
+### 1. Large Language Model (LLM)
+A deep learning algorithm that can recognize, summarize, translate, predict, and generate text. We use **Gemini Pro** as our reasoning engine.
+*   *In Project*: Used to understand student answers and compare them against rubrics.
+
+### 2. Retrieval-Augmented Generation (RAG)
+A technique that optimizes the output of an LLM by referencing an authoritative knowledge base outside its training data before generating a response.
+*   *In Project*: We use RAG to fetch **past graded submissions** similar to the current one. This ensures **grading consistency**—if a teacher gave full marks for a specific answer type in the past, the AI "remembers" and does the same.
+
+### 3. Vector Embeddings
+Converting text into lists of numbers (vectors) such that similar meanings are mathematically close.
+*   *In Project*: We convert student answers into 384-dimensional vectors using **Sentence-BERT**. This allows us to detect **paraphrasing** (e.g., "The sky is blue" and "The heavens are azure" will have very similar vectors).
+
+### 4. Multi-Agent System
+A computerized system composed of multiple interacting intelligent agents.
+*   *In Project*: We don't just ask one AI to grade. We spawn three:
+    *   **Strict Agent**: Looks for every mistake.
+    *   **Lenient Agent**: Looks for effort and partial understanding.
+    *   **Expert Agent**: Balances the two.
+    *   **Consensus**: The final score is a weighted average, reducing bias.
+
+### 5. Chain-of-Thought (CoT) Reasoning
+Prompting the AI to explain its reasoning step-by-step before giving a final answer.
+*   *In Project*: Used in the **Explainable AI** module to generate a "Why did I get this grade?" report for students.
+
+---
+
+## 4. Detailed Implementation Breakdown
+
+### A. The Backend (The Brain)
+Located in `/backend`, this is where the heavy lifting happens.
+
+#### 1. Multi-Agent Evaluator (`modules/multiAgentEvaluator.js`)
+This module orchestrates the grading process.
+*   **Workflow**:
+    1.  Receives Student Submission + Teacher Rubric.
+    2.  Initializes 3 AI personas with different system prompts.
+    3.  Runs evaluations in parallel (Promise.all).
+    4.  **Consensus Algorithm**: Calculates the weighted mean of scores.
+    5.  **Disagreement Check**: If the standard deviation between agents is high (>15%), it flags the submission for human review.
+
+#### 2. Advanced Plagiarism Detector (`modules/advancedPlagiarismDetector.js`)
+A hybrid engine that combines multiple detection strategies:
+*   **Lexical Search**: Uses **Jaccard Similarity** to find exact word overlaps.
+*   **Semantic Search**: Uses **Cosine Similarity** on Vector Embeddings to find paraphrased content.
+*   **Stylometry**: Analyzes writing style (sentence length, vocabulary richness). Sudden changes in style indicate copy-pasting.
+*   **Internet Search**: Uses a custom scraper (DuckDuckGo/Wikipedia) to check if text was copied from the web without citation.
+
+#### 3. RAG Grading Engine (`modules/ragGrading.js`)
+Ensures fairness over time.
+*   **Indexing**: When a teacher grades a submission, it is "indexed" (embedded and stored).
+*   **Retrieval**: When a new student submits, the system searches for the top 3 most similar past submissions.
+*   **Context Injection**: The prompt to the AI becomes: *"Here is the current student's answer. Here are 3 past answers that the teacher graded as 10/10. Grade the current one consistently with these examples."*
+
+### B. The Frontend (The Interface)
+Located in `/frontend_new`, built for responsiveness and UX.
+
+*   **State Management**: Uses React Context API for managing User Auth state and Theme preferences.
+*   **Real-time Updates**: Listeners on Firestore collections update the UI immediately when a grade is released.
+*   **Security**: Protected Routes ensure Students cannot access Teacher dashboards.
+
+### C. Database Schema (Firestore)
+*   `users`: Stores profiles and roles (Student/Teacher/Admin).
+*   `subjects`: Classes created by teachers.
+*   `assignments`: Homework tasks linked to subjects.
+*   `submissions`: Student work. Contains:
+    *   `fileUrl`: Link to uploaded PDF/Doc.
+    *   `aiScore`: The calculated grade.
+    *   `plagiarismReport`: JSON object with detection details.
+    *   `teacherOverride`: Optional field if teacher changes the grade.
+
+---
+
+## 5. Advanced Features & "Wow" Factors
+
+### 1. "Explainable AI" Transparency Layer
+Most AI graders are "black boxes"—you get a score but don't know why.
+*   **Our Solution**: We force the AI to output a JSON structure containing `reasoning_trace`.
+*   **UI**: The student sees a "View Analysis" button that highlights specific sentences in their essay and explains: *"This sentence contradicts the prompt, resulting in a -2 point deduction."*
+
+### 2. Free Internet Plagiarism Check
+Commercial tools like Turnitin cost thousands of dollars. Google Search API costs money per query.
+*   **Our Innovation**: We implemented a **smart scraper** that:
+    1.  Extracts "key phrases" (rare bigrams/trigrams) from the student text.
+    2.  Queries DuckDuckGo (HTML parsing) and Wikipedia API.
+    3.  Matches results locally.
+    *Result*: A completely free, unlimited web plagiarism checker.
+
+### 3. PDF Parsing & OCR
+The system supports PDF uploads.
+*   **Tech**: Uses `pdf-parse` to extract raw text.
+*   **Future**: Ready for OCR integration to read handwritten assignments (Tesseract.js).
+
+---
+
+## 6. Deployment & DevOps
+
+*   **Backend**: Deployed on **Render.com** (Auto-scaling Node.js container).
+*   **Frontend**: Deployed on **Vercel** (Global CDN for fast loading).
+*   **CI/CD**: GitHub Actions automatically deploy changes when code is pushed to the `main` branch.
+*   **Environment Variables**: Securely managed secrets for Firebase Admin SDK and Gemini API Keys.
+
+---
+
+## 7. Conclusion
+This project represents a **production-grade** implementation of Generative AI in EdTech. It moves beyond simple text generation to solve complex problems like **fairness** (via Multi-Agent Consensus), **consistency** (via RAG), and **integrity** (via Hybrid Plagiarism Detection).
+
+---
+
+## 8. Deep Dive: Algorithms & Mathematics ("Under the Hood")
+
+This section details the exact mathematical formulas and logic used in our custom modules.
+
+### A. Multi-Agent Consensus Algorithm
+**Goal**: To aggregate scores from three distinct agents ($A_{strict}, A_{lenient}, A_{expert}$) and determine if they agree.
+
+#### 1. Weighted Consensus Score ($S_{final}$)
+We use a weighted arithmetic mean where the Expert agent has the highest influence.
+
+$$ S_{final} = \frac{\sum (S_i \cdot w_i)}{\sum w_i} $$
+
+Where:
+*   $S_{strict}$ (Strict Agent Score), weight $w_{strict} = 0.25$
+*   $S_{lenient}$ (Lenient Agent Score), weight $w_{lenient} = 0.25$
+*   $S_{expert}$ (Expert Agent Score), weight $w_{expert} = 0.50$
+
+#### 2. Disagreement Detection (Standard Deviation)
+To measure confidence, we calculate the population standard deviation ($\sigma$) of the three scores.
+
+$$ \sigma = \sqrt{\frac{\sum (S_i - \mu)^2}{N}} $$
+
+*   If $\sigma \le 10\%$ of total points: **Strong Agreement** (High Confidence)
+*   If $\sigma \le 20\%$ of total points: **Moderate Agreement**
+*   If $\sigma > 20\%$ of total points: **Significant Disagreement** (Flags for human review)
+
+---
+
+### B. Plagiarism Detection Metrics
+We employ a "Multi-View" approach, combining lexical, semantic, and structural metrics.
+
+#### 1. Semantic Similarity (Cosine Similarity)
+Used to detect paraphrasing. We convert sentences into 384-dimensional vectors ($\mathbf{A}$ and $\mathbf{B}$) using **Sentence-BERT (all-MiniLM-L6-v2)**.
+
+$$ \text{Cosine Similarity} = \frac{\mathbf{A} \cdot \mathbf{B}}{\|\mathbf{A}\| \|\mathbf{B}\|} = \frac{\sum_{i=1}^{n} A_i B_i}{\sqrt{\sum_{i=1}^{n} A_i^2} \sqrt{\sum_{i=1}^{n} B_i^2}} $$
+
+*   **Threshold**: $> 0.75$ indicates a semantic match (paraphrase).
+*   **Range**: $[-1, 1]$, where $1$ means identical meaning.
+
+#### 2. Lexical Overlap (Jaccard Similarity)
+Used to detect word-for-word copying.
+
+$$ J(A, B) = \frac{|A \cap B|}{|A \cup B|} $$
+
+Where $A$ and $B$ are the sets of unique words in the two texts.
+
+#### 3. String Similarity (Dice Coefficient)
+Used for fuzzy string matching (via `string-similarity` library).
+
+$$ S = \frac{2 \cdot |A \cap B|}{|A| + |B|} $$
+
+Where $|A \cap B|$ is the number of matching bigrams (character pairs).
+
+#### 4. Stylometric Fingerprinting
+We create a "style vector" for each document to detect authorship changes.
+$$ \text{Vector}_{style} = [\text{LexicalDiversity}, \text{AvgSentenceLength}, \text{ReadabilityScore}] $$
+
+*   **Lexical Diversity (TTR)**: $\frac{\text{Unique Words}}{\text{Total Words}}$
+*   **Flesch-Kincaid Readability**:
+    $$ 206.835 - 1.015 \left(\frac{\text{total words}}{\text{total sentences}}\right) - 84.6 \left(\frac{\text{total syllables}}{\text{total words}}\right) $$
+
+---
+
+### C. RAG Retrieval Logic (TF-IDF)
+To find the most relevant past submissions for context, we implement a custom TF-IDF (Term Frequency-Inverse Document Frequency) scorer.
+
+#### 1. Term Frequency (TF)
+$$ tf(t, d) = \frac{\text{count of term } t \text{ in doc } d}{\text{total terms in doc } d} $$
+
+#### 2. Inverse Document Frequency (IDF)
+$$ idf(t) = \log \left( \frac{N}{df(t)} \right) $$
+Where $N$ is total documents and $df(t)$ is number of documents containing term $t$.
+
+#### 3. Final Similarity Score
+We combine multiple metrics to rank past submissions:
+$$ \text{Score} = 0.5 \cdot \text{Dice} + 0.3 \cdot \text{Jaccard} + 0.2 \cdot \text{LengthRatio} $$
+
+This hybrid score ensures we retrieve examples that are both lexically similar and structurally comparable.
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const markdownSource = document.getElementById('markdown-source').textContent;
+            const contentDiv = document.getElementById('content');
+
+            // Configure Marked
+            marked.setOptions({
+                highlight: function(code, lang) {
+                    return code;
+                },
+                breaks: true
+            });
+
+            // Render Markdown
+            contentDiv.innerHTML = marked.parse(markdownSource);
+
+            // Render Mermaid Diagrams
+            const mermaidBlocks = document.querySelectorAll('.language-mermaid');
+            for (const block of mermaidBlocks) {
+                const parent = block.parentElement; // pre tag
+                const div = document.createElement('div');
+                div.className = 'mermaid flex justify-center my-8';
+                div.textContent = block.textContent;
+                parent.replaceWith(div);
+            }
+            
+            if (window.mermaid) {
+                await window.mermaid.run();
+            }
+
+            // Render MathJax
+            if (window.MathJax) {
+                await window.MathJax.typesetPromise();
+            }
+        });
+    </script>
+</body>
+</html>

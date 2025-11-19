@@ -9,7 +9,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('analytics');
 
   const tabs = [
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, component: AnalyticsView },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3, component: () => <AnalyticsView role="admin" /> },
     { id: 'users', label: 'User Management', icon: Users, component: UserManagementView },
     { id: 'subjects', label: 'Subject Management', icon: BookOpen, component: SubjectManagementView },
   ];
@@ -27,11 +27,10 @@ const AdminDashboard = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                    activeTab === tab.id
+                  className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === tab.id
                       ? 'border-purple-500 text-purple-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <IconComponent className="w-5 h-5 mr-2" />
                   {tab.label}

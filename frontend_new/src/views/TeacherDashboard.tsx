@@ -20,7 +20,7 @@ const TeacherDashboard = () => {
   const [activeTab, setActiveTab] = useState('analytics');
 
   const tabs: Tab[] = [
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, component: AnalyticsView },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3, component: () => <AnalyticsView role="teacher" /> },
     { id: 'generator', label: 'AI Generator', icon: Sparkles, component: AssignmentGeneratorView },
     { id: 'submissions', label: 'Submissions', icon: FileText, component: AllSubmissionsView },
     { id: 'assignments', label: 'Assignments', icon: Settings, component: AssignmentManagementView },
@@ -39,17 +39,16 @@ const TeacherDashboard = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center py-3 px-4 font-mono font-medium text-sm transition-colors duration-300 ${
-                    activeTab === tab.id
+                  className={`relative flex items-center py-3 px-4 font-mono font-medium text-sm transition-colors duration-300 ${activeTab === tab.id
                       ? 'text-white'
                       : 'text-gray-400 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <IconComponent className="w-5 h-5 mr-2" />
                   <span>{tab.label}</span>
                   {activeTab === tab.id && (
-                    <motion.div 
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400" 
+                    <motion.div
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"
                       layoutId="underline"
                       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                     />
