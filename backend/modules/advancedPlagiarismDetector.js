@@ -593,64 +593,97 @@ class AdvancedPlagiarismDetector {
         // Initialize if needed
         await this.initialize();
 
-        // Handle edge case: no comparisons
-        if (comparisonTexts.length === 0) {
-            console.log('ℹ️  No past submissions to compare against');
-            return {
-                checked: true,
-                noComparisons: true,
-                message: "First submission for this assignment. No plagiarism check possible.",
-                overallScore: 0,
-                verdict: {
-                    verdict: "Cannot Determine",
-                    severity: "info",
-                    color: "#6b7280",
-                    message: "No comparison data available"
-                },
-                timestamp: new Date().toISOString()
-            };
+        // Handle edge case: no comparisons (but still check internet if requested!)
+        const hasNoComparisons = comparisonTexts.length === 0;
+        
+        if (hasNoComparisons) {
+            console.log('ℹ️  No past submissions to compare against (first submission)');
+            
+            // If internet check is NOT enabled, return early
+            if (!options.checkInternet) {
+                console.log('ℹ️  Internet check not enabled, returning early');
+                return {
+                    checked: true,
+                    noComparisons: true,
+                    message: "First submission for this assignment. No peer plagiarism check possible.",
+                    overallScore: 0,
+                    verdict: {
+                        verdict: "Cannot Determine",
+                        severity: "info",
+                        color: "#6b7280",
+                        message: "No peer comparison data available"
+                    },
+                    timestamp: new Date().toISOString()
+                };
+            }
+            
+            // Internet check IS enabled, so skip internal checks but continue to internet check
+            console.log('✅ Internet check enabled - will check online sources');
         }
 
         try {
-            // 1. Citation Detection
-            console.log('\n📚 Step 1: Checking citations...');
-            const citationData = this.detectCitations(submissionText);
-            console.log(`   Found: ${citationData.quotedCount} quotes, ${citationData.citations.total} citations`);
-
-            // 2. Style Analysis
-            console.log('\n✍️  Step 2: Analyzing writing style...');
-            const overallStyle = this.analyzeWritingStyle(submissionText);
-            const styleShifts = this.detectStyleShifts(submissionText);
-            console.log(`   Style consistency: ${styleShifts.consistent ? 'Consistent' : `${styleShifts.shifts.length} shifts detected`}`);
-
-            // 3. Sentence-Level Detection
-            console.log('\n🔬 Step 3: Performing sentence-level analysis...');
-            const sentenceMatches = await this.detectSentenceLevelPlagiarism(submissionText, comparisonTexts);
+            // Initialize result variables
+            let citationData, styleShifts, sentenceMatches, heatmap, timeline, overallScore, verdict, overallStyle;
+            let exactMatches = 0, paraphrases = 0, nearDuplicates = 0;
             
-            const exactMatches = sentenceMatches.filter(m => m.type === 'exact_copy').length;
-            const paraphrases = sentenceMatches.filter(m => m.type === 'paraphrase').length;
-            const nearDuplicates = sentenceMatches.filter(m => m.type === 'near_duplicate').length;
+            // Only run internal checks if we have past submissions to compare
+            if (!hasNoComparisons) {
+                // 1. Citation Detection
+                console.log('\n📚 Step 1: Checking citations...');
+                citationData = this.detectCitations(submissionText);
+                console.log(`   Found: ${citationData.quotedCount} quotes, ${citationData.citations.total} citations`);
 
-            console.log(`   Exact copies: ${exactMatches}`);
-            console.log(`   Paraphrases: ${paraphrases}`);
-            console.log(`   Near duplicates: ${nearDuplicates}`);
+                // 2. Style Analysis
+                console.log('\n✍️  Step 2: Analyzing writing style...');
+                const overallStyle = this.analyzeWritingStyle(submissionText);
+                styleShifts = this.detectStyleShifts(submissionText);
+                console.log(`   Style consistency: ${styleShifts.consistent ? 'Consistent' : `${styleShifts.shifts.length} shifts detected`}`);
 
-            // 4. Generate Heatmap
-            console.log('\n🗺️  Step 4: Generating visualization data...');
-            const heatmap = this.generateHeatmapData(submissionText, sentenceMatches);
+                // 3. Sentence-Level Detection
+                console.log('\n🔬 Step 3: Performing sentence-level analysis...');
+                sentenceMatches = await this.detectSentenceLevelPlagiarism(submissionText, comparisonTexts);
+                
+                exactMatches = sentenceMatches.filter(m => m.type === 'exact_copy').length;
+                paraphrases = sentenceMatches.filter(m => m.type === 'paraphrase').length;
+                nearDuplicates = sentenceMatches.filter(m => m.type === 'near_duplicate').length;
 
-            // 5. Timeline Analysis
-            console.log('\n⏰ Step 5: Analyzing submission timeline...');
-            const timeline = this.analyzeTimeline(metadata, sentenceMatches);
+                console.log(`   Exact copies: ${exactMatches}`);
+                console.log(`   Paraphrases: ${paraphrases}`);
+                console.log(`   Near duplicates: ${nearDuplicates}`);
 
-            // 6. Calculate Overall Score
-            console.log('\n📈 Step 6: Calculating overall plagiarism score...');
-            const overallScore = this.calculateOverallScore(sentenceMatches, citationData, styleShifts);
-            const verdict = this.generateVerdict(overallScore, exactMatches, paraphrases, styleShifts);
+                // 4. Generate Heatmap
+                console.log('\n🗺️  Step 4: Generating visualization data...');
+                heatmap = this.generateHeatmapData(submissionText, sentenceMatches);
 
-            const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
-            console.log(`\n✅ ===== INTERNAL DETECTION COMPLETE in ${processingTime}s =====`);
-            console.log(`📊 Final Score: ${overallScore}% - ${verdict.verdict}\n`);
+                // 5. Timeline Analysis
+                console.log('\n⏰ Step 5: Analyzing submission timeline...');
+                timeline = this.analyzeTimeline(metadata, sentenceMatches);
+
+                // 6. Calculate Overall Score
+                console.log('\n📈 Step 6: Calculating overall plagiarism score...');
+                overallScore = this.calculateOverallScore(sentenceMatches, citationData, styleShifts);
+                verdict = this.generateVerdict(overallScore, exactMatches, paraphrases, styleShifts);
+
+                const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
+                console.log(`\n✅ ===== INTERNAL DETECTION COMPLETE in ${processingTime}s =====`);
+                console.log(`📊 Final Score: ${overallScore}% - ${verdict.verdict}\n`);
+            } else {
+                // First submission - set defaults
+                console.log('\n⏩ Skipping internal checks (no past submissions)');
+                citationData = { quotedCount: 0, citations: { total: 0 }, properlyFormatted: true, warning: null };
+                styleShifts = { consistent: true, shifts: [] };
+                sentenceMatches = [];
+                heatmap = [];
+                timeline = null;
+                overallScore = 0;
+                overallStyle = { avgSentenceLength: 0, avgWordLength: 0, complexity: 0, formality: 0 };
+                verdict = {
+                    verdict: "First Submission",
+                    severity: "info",
+                    color: "#6b7280",
+                    message: "No peer comparison data available. Check Internet tab for online sources."
+                };
+            }
 
             // Optional: Internet plagiarism check (FREE!)
             let internetResults = null;
@@ -674,6 +707,7 @@ class AdvancedPlagiarismDetector {
             // Return comprehensive report
             return {
                 checked: true,
+                noComparisons: hasNoComparisons,  // Flag to indicate first submission
                 timestamp: new Date().toISOString(),
                 processingTime: `${processingTime}s`,
                 
