@@ -22,10 +22,10 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 // Enhanced CORS configuration for production
 app.use(cors({
-    origin: function(origin, callback) {
+    origin: function (origin, callback) {
         // Allow requests with no origin (mobile apps, curl, etc.)
         if (!origin) return callback(null, true);
-        
+
         const allowedOrigins = [
             'http://localhost:5173',
             'http://localhost:3000',
@@ -34,12 +34,12 @@ app.use(cors({
             'https://eval-50qea5ca9-mayanks-projects-fd92aa30.vercel.app',
             'https://eval-ai-beta.vercel.app'
         ];
-        
+
         // Allow any Vercel preview deployment
         if (origin.includes('.vercel.app')) {
             return callback(null, true);
         }
-        
+
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
@@ -625,7 +625,7 @@ app.post('/evaluate', checkAuth, upload.single('file'), async (req, res) => {
                 { text: `You are a fair evaluator. Evaluate this submission for: "${question}"\n\nRubric:\n${rubric.map(r => `- ${r.criterion} (${r.points} pts)`).join('\n')}` },
                 { inlineData: { data: file.buffer.toString('base64'), mimeType: file.mimetype } }
             ];
-        const generationRequest = { contents: [{ role: "user", parts: promptParts }] };
+            const generationRequest = { contents: [{ role: "user", parts: promptParts }] };
             const feedback = await callGenerativeAI(generationRequest, true);
             result = { ...result, ...feedback };
         }
@@ -654,13 +654,13 @@ app.post('/evaluate', checkAuth, upload.single('file'), async (req, res) => {
                     .filter(s => s.text && s.text.length > 50);
 
                 plagiarismReport = await plagiarismDetector.checkPlagiarism(
-                    extractedText, 
+                    extractedText,
                     pastSubmissions,
-                    { 
+                    {
                         timestamp: new Date().toISOString(),
                         studentId: req.user.uid
                     },
-                    { 
+                    {
                         checkInternet: enableInternetCheck === 'true' // Enable FREE internet check!
                     }
                 );
@@ -757,14 +757,22 @@ app.get('/submissions', checkAuth, async (req, res) => {
 app.get('/submissions/teacher', [checkAuth, checkTeacherOrAdmin], async (req, res) => {
     const teacherId = req.user.uid;
     try {
-        const submissionsSnapshot = await db.collection('submissions').where('teacherUid', '==', teacherId).get();
+        let submissionsSnapshot;
+        if (req.user.role === 'admin') {
+            // Admin sees ALL submissions
+            submissionsSnapshot = await db.collection('submissions').orderBy('createdAt', 'desc').get();
+        } else {
+            // Teacher sees only their own
+            submissionsSnapshot = await db.collection('submissions').where('teacherUid', '==', teacherId).get();
+        }
+
         if (submissionsSnapshot.empty) return res.status(200).json([]);
 
         const submissionsData = submissionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         const userIds = [...new Set(submissionsData.map(s => s.userId))];
         const subjectIds = [...new Set(submissionsData.map(s => s.subjectId))];
-        
+
         const userMap = new Map();
         if (userIds.length > 0) {
             const userRecords = await admin.auth().getUsers(userIds.map(uid => ({ uid })));
@@ -781,13 +789,16 @@ app.get('/submissions/teacher', [checkAuth, checkTeacherOrAdmin], async (req, re
             id: data.id,
             question: data.question,
             score: data.teacherScore || data.aiFeedback?.score,
+            aiScore: data.aiFeedback?.score, // Added for analytics
+            teacherScore: data.teacherScore, // Added for analytics
             teacherReviewed: data.teacherReviewed || false,
             createdAt: data.createdAt.toDate(),
             studentEmail: userMap.get(data.userId) || 'Unknown Student',
             subjectName: subjectMap.get(data.subjectId) || 'Unknown Subject',
-            subjectId: data.subjectId
+            subjectId: data.subjectId,
+            plagiarismReport: data.plagiarismReport // Added for analytics
         }));
-        
+
         teacherSubmissions.sort((a, b) => b.createdAt - a.createdAt);
         res.status(200).json(teacherSubmissions);
     } catch (error) {
@@ -940,7 +951,7 @@ app.get('/submissions/:id/plagiarism', checkAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const doc = await db.collection('submissions').doc(id).get();
-        
+
         if (!doc.exists) {
             return res.status(404).json({ error: 'Submission not found.' });
         }
@@ -969,7 +980,7 @@ app.get('/submissions/:id/explainability', checkAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const doc = await db.collection('submissions').doc(id).get();
-        
+
         if (!doc.exists) {
             return res.status(404).json({ error: 'Submission not found.' });
         }
@@ -998,7 +1009,7 @@ app.post('/submissions/:id/recheck-plagiarism', [checkAuth, checkTeacherOrAdmin]
     try {
         const { id } = req.params;
         const doc = await db.collection('submissions').doc(id).get();
-        
+
         if (!doc.exists) {
             return res.status(404).json({ error: 'Submission not found.' });
         }
@@ -1064,7 +1075,7 @@ app.get('/submissions/:id/multi-agent', checkAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const doc = await db.collection('submissions').doc(id).get();
-        
+
         if (!doc.exists) {
             return res.status(404).json({ error: 'Submission not found.' });
         }
@@ -1277,7 +1288,7 @@ app.post('/chat', checkAuth, async (req, res) => {
 
         const submissionDoc = await db.collection('submissions').doc(submissionId).get();
         if (!submissionDoc.exists) return res.status(404).json({ error: "Submission not found." });
-        
+
         const submissionData = submissionDoc.data();
         let promptText = '';
 

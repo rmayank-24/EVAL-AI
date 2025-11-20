@@ -86,7 +86,7 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
         // 2. Fetch Raw Submissions for Graphs
         let submissions = [];
         if (role === 'admin') {
-          submissions = await apiService.getSubmissions();
+          submissions = await apiService.getTeacherSubmissions();
           // 3. Fetch Users for Admin
           const users = await apiService.getUsers();
           processAdminData(submissions, users);
@@ -192,8 +192,8 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
       }
 
       // Trends
-      if (sub.submittedAt) {
-        const dateStr = new Date(sub.submittedAt).toISOString().split('T')[0];
+      if (sub.createdAt || sub.submittedAt) {
+        const dateStr = new Date(sub.createdAt || sub.submittedAt).toISOString().split('T')[0];
         if (trendsMap.has(dateStr)) {
           trendsMap.set(dateStr, trendsMap.get(dateStr) + 1);
         }
@@ -285,8 +285,8 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
       trendsMap.set(dateStr, 0);
     }
     submissions.forEach(sub => {
-      if (sub.submittedAt) {
-        const dateStr = new Date(sub.submittedAt).toISOString().split('T')[0];
+      if (sub.createdAt || sub.submittedAt) {
+        const dateStr = new Date(sub.createdAt || sub.submittedAt).toISOString().split('T')[0];
         if (trendsMap.has(dateStr)) {
           trendsMap.set(dateStr, trendsMap.get(dateStr) + 1);
         }
