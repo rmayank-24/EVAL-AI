@@ -112,10 +112,18 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
   }, [showError, role]);
 
   const processTeacherData = (submissions: any[]) => {
-    // Helper to parse score string "85/100" -> 85
+    // Helper to parse score string "85/100" -> 85, "8/10" -> 80
     const parseScore = (val: any) => {
       if (typeof val === 'number') return val;
-      if (typeof val === 'string') return parseFloat(val.split('/')[0]);
+      if (typeof val === 'string') {
+        const parts = val.split('/');
+        if (parts.length === 2) {
+          const obtained = parseFloat(parts[0]);
+          const total = parseFloat(parts[1]);
+          return total > 0 ? (obtained / total) * 100 : 0;
+        }
+        return parseFloat(parts[0]);
+      }
       return 0;
     };
 
@@ -614,7 +622,7 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
             {/* AI vs Teacher Deviation */}
-            <motion.div variants={itemVariants} className="bg-slate-900/40 border border-white/5 rounded-xl p-6 backdrop-blur-md shadow-xl">
+            <motion.div variants={itemVariants} className="bg-slate-900/40 border border-white/5 rounded-xl p-6 backdrop-blur-md shadow-xl relative">
               <div className="flex items-center mb-6">
                 <div className="p-2 bg-orange-500/10 rounded-lg mr-3">
                   <Zap className="w-5 h-5 text-orange-400" />
@@ -625,22 +633,29 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
                 </div>
               </div>
               <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={graphData.deviationData}>
-                    <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-                    <XAxis dataKey="name" scale="band" tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                    <YAxis domain={[0, 100]} tick={{ fill: '#94a3b8' }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Bar dataKey="aiScore" name="AI Score" barSize={20} fill="#3b82f6" />
-                    <Line type="monotone" dataKey="teacherScore" name="Teacher Score" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
-                  </ComposedChart>
-                </ResponsiveContainer>
+                {graphData.deviationData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={graphData.deviationData}>
+                      <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+                      <XAxis dataKey="name" scale="band" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                      <YAxis domain={[0, 100]} tick={{ fill: '#94a3b8' }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Bar dataKey="aiScore" name="AI Score" barSize={20} fill="#3b82f6" />
+                      <Line type="monotone" dataKey="teacherScore" name="Teacher Score" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                    <Zap className="w-8 h-8 mb-2 opacity-20" />
+                    <p className="text-sm">No manual reviews yet</p>
+                  </div>
+                )}
               </div>
             </motion.div>
 
             {/* Plagiarism Risk Analysis */}
-            <motion.div variants={itemVariants} className="bg-slate-900/40 border border-white/5 rounded-xl p-6 backdrop-blur-md shadow-xl">
+            <motion.div variants={itemVariants} className="bg-slate-900/40 border border-white/5 rounded-xl p-6 backdrop-blur-md shadow-xl relative">
               <div className="flex items-center mb-6">
                 <div className="p-2 bg-red-500/10 rounded-lg mr-3">
                   <AlertTriangle className="w-5 h-5 text-red-400" />
@@ -651,23 +666,30 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
                 </div>
               </div>
               <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis type="number" dataKey="plagiarism" name="Plagiarism %" unit="%" stroke="#94a3b8" domain={[0, 100]} tick={{ fill: '#94a3b8' }}>
-                      <Label value="Plagiarism %" offset={-5} position="insideBottom" fill="#94a3b8" />
-                    </XAxis>
-                    <YAxis type="number" dataKey="score" name="Score" unit="" stroke="#94a3b8" domain={[0, 100]} tick={{ fill: '#94a3b8' }}>
-                      <Label value="Score" angle={-90} position="insideLeft" fill="#94a3b8" />
-                    </YAxis>
-                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<CustomTooltip />} />
-                    <Scatter name="Submissions" data={graphData.plagiarismRisk} fill="#ef4444">
-                      {graphData.plagiarismRisk.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.risk === 'High' ? '#ef4444' : '#10b981'} />
-                      ))}
-                    </Scatter>
-                  </ScatterChart>
-                </ResponsiveContainer>
+                {graphData.plagiarismRisk.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ScatterChart>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis type="number" dataKey="plagiarism" name="Plagiarism %" unit="%" stroke="#94a3b8" domain={[0, 100]} tick={{ fill: '#94a3b8' }}>
+                        <Label value="Plagiarism %" offset={-5} position="insideBottom" fill="#94a3b8" />
+                      </XAxis>
+                      <YAxis type="number" dataKey="score" name="Score" unit="" stroke="#94a3b8" domain={[0, 100]} tick={{ fill: '#94a3b8' }}>
+                        <Label value="Score" angle={-90} position="insideLeft" fill="#94a3b8" />
+                      </YAxis>
+                      <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<CustomTooltip />} />
+                      <Scatter name="Submissions" data={graphData.plagiarismRisk} fill="#ef4444">
+                        {graphData.plagiarismRisk.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.risk === 'High' ? '#ef4444' : '#10b981'} />
+                        ))}
+                      </Scatter>
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                    <AlertTriangle className="w-8 h-8 mb-2 opacity-20" />
+                    <p className="text-sm">No plagiarism data available</p>
+                  </div>
+                )}
               </div>
             </motion.div>
 
