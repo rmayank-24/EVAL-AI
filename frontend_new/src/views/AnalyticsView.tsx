@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Award, CheckCircle, RefreshCw, TrendingUp, Users, PieChart as PieIcon } from 'lucide-react';
+import { FileText, Award, CheckCircle, RefreshCw, TrendingUp, Users, PieChart as PieIcon, AlertTriangle, Zap, Target } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useNotificationContext } from '../contexts/NotificationContext';
@@ -19,6 +19,16 @@ import {
   PieChart,
   Pie,
   Cell,
+  ScatterChart,
+  Scatter,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  ComposedChart,
+  Line,
+  Label
 } from 'recharts';
 
 interface AnalyticsReport {
@@ -40,7 +50,7 @@ interface AnalyticsViewProps {
   role?: 'teacher' | 'admin';
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
   const [report, setReport] = useState<AnalyticsReport | null>(null);
@@ -50,7 +60,10 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
     scoreDist: any[];
     trends: any[];
     statusDist: any[];
-  }>({ scoreDist: [], trends: [], statusDist: [] });
+    deviationData: any[];
+    subjectRadar: any[];
+    plagiarismRisk: any[];
+  }>({ scoreDist: [], trends: [], statusDist: [], deviationData: [], subjectRadar: [], plagiarismRisk: [] });
 
   const { showError, showSuccess } = useNotificationContext() as NotificationContextType;
 
@@ -89,7 +102,14 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
   }, [showError, role]);
 
   const processGraphData = (submissions: any[]) => {
-    // --- Score Distribution ---
+    // Helper to parse score string "85/100" -> 85
+    const parseScore = (val: any) => {
+      if (typeof val === 'number') return val;
+      if (typeof val === 'string') return parseFloat(val.split('/')[0]);
+      return 0;
+    };
+
+    // --- 1. Score Distribution ---
     const dist = [
       { range: '0-20', count: 0 },
       { range: '21-40', count: 0 },
@@ -98,59 +118,111 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
       { range: '81-100', count: 0 },
     ];
 
-    submissions.forEach(sub => {
-      const score = typeof sub.aiScore === 'number' ? sub.aiScore : 0;
-      if (score <= 20) dist[0].count++;
-      else if (score <= 40) dist[1].count++;
-      else if (score <= 60) dist[2].count++;
-      else if (score <= 80) dist[3].count++;
-      else dist[4].count++;
-    });
+    // --- 2. Subject Performance (Radar) ---
+    const subjectStats: Record<string, { total: number; count: number }> = {};
 
-    // --- Submission Trends (Last 7 days) ---
+    // --- 3. Deviation (AI vs Teacher) ---
+    const deviationData: any[] = [];
+
+    // --- 4. Plagiarism Risk ---
+    const plagiarismRisk: any[] = [];
+
+    // --- 5. Trends ---
     const trendsMap = new Map();
-    // Initialize last 7 days
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
+      const dateStr = d.toISOString().split('T')[0];
       trendsMap.set(dateStr, 0);
     }
 
+    // --- 6. Status ---
+    const statusCounts = { graded: 0, pending: 0, reviewed: 0 };
+
     submissions.forEach(sub => {
+      const aiScore = parseScore(sub.aiScore || sub.score); // Fallback
+      const teacherScore = sub.teacherScore ? parseScore(sub.teacherScore) : null;
+      const finalScore = teacherScore !== null ? teacherScore : aiScore;
+
+      // Score Dist
+      if (finalScore <= 20) dist[0].count++;
+      else if (finalScore <= 40) dist[1].count++;
+      else if (finalScore <= 60) dist[2].count++;
+      else if (finalScore <= 80) dist[3].count++;
+      else dist[4].count++;
+
+      // Subject Radar
+      const subject = sub.subjectName || 'General';
+      if (!subjectStats[subject]) subjectStats[subject] = { total: 0, count: 0 };
+      subjectStats[subject].total += finalScore;
+      subjectStats[subject].count++;
+
+      // Deviation
+      if (teacherScore !== null && aiScore > 0) {
+        deviationData.push({
+          name: `Sub ${sub.id.substring(0, 4)}`,
+          aiScore,
+          teacherScore,
+          diff: Math.abs(aiScore - teacherScore)
+        });
+      }
+
+      // Plagiarism Risk
+      const plagiarismScore = sub.plagiarismReport?.verdict?.overallScore
+        ? parseFloat(sub.plagiarismReport.verdict.overallScore)
+        : 0;
+
+      if (plagiarismScore > 0) {
+        plagiarismRisk.push({
+          score: finalScore,
+          plagiarism: plagiarismScore,
+          id: sub.id.substring(0, 4),
+          risk: plagiarismScore > 30 && finalScore > 70 ? 'High' : 'Low' // Smart Cheater Detection
+        });
+      }
+
+      // Trends
       if (sub.submittedAt) {
         const dateStr = new Date(sub.submittedAt).toISOString().split('T')[0];
         if (trendsMap.has(dateStr)) {
           trendsMap.set(dateStr, trendsMap.get(dateStr) + 1);
         }
       }
-    });
 
-    const trends = Array.from(trendsMap.entries()).map(([date, count]) => ({
-      date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      submissions: count
-    }));
-
-    // --- Status Distribution ---
-    const statusCounts = {
-      graded: 0,
-      pending: 0,
-      reviewed: 0
-    };
-
-    submissions.forEach(sub => {
+      // Status
       if (sub.teacherScore) statusCounts.reviewed++;
       else if (sub.aiScore) statusCounts.graded++;
       else statusCounts.pending++;
     });
 
+    // Finalize Radar Data
+    const subjectRadar = Object.entries(subjectStats).map(([subject, data]) => ({
+      subject,
+      average: Math.round(data.total / data.count),
+      fullMark: 100
+    }));
+
+    // Finalize Trends
+    const trends = Array.from(trendsMap.entries()).map(([date, count]) => ({
+      date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      submissions: count
+    }));
+
+    // Finalize Status
     const statusDist = [
       { name: 'AI Graded', value: statusCounts.graded },
       { name: 'Reviewed', value: statusCounts.reviewed },
       { name: 'Pending', value: statusCounts.pending },
     ].filter(item => item.value > 0);
 
-    setGraphData({ scoreDist: dist, trends, statusDist });
+    setGraphData({
+      scoreDist: dist,
+      trends,
+      statusDist,
+      deviationData: deviationData.slice(0, 20), // Limit points
+      subjectRadar,
+      plagiarismRisk
+    });
   };
 
   const generateReport = async () => {
@@ -194,15 +266,15 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
     reviewedCount: 0,
   };
 
-  // Custom Tooltip for Recharts
+  // Custom Tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-slate-800 border border-slate-700 p-3 rounded-lg shadow-xl">
-          <p className="text-slate-200 font-medium mb-1">{label}</p>
+        <div className="bg-slate-900/90 border border-slate-700 p-3 rounded-lg shadow-xl backdrop-blur-md">
+          <p className="text-slate-200 font-medium mb-1 font-mono text-xs">{label}</p>
           {payload.map((entry: any, index: number) => (
-            <p key={index} style={{ color: entry.color }} className="text-sm">
-              {entry.name}: {entry.value}
+            <p key={index} style={{ color: entry.color }} className="text-sm font-medium">
+              {entry.name}: {typeof entry.value === 'number' ? entry.value.toFixed(1) : entry.value}
             </p>
           ))}
         </div>
@@ -221,9 +293,9 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
       {/* Header */}
       <motion.div variants={itemVariants} className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white font-heading">Analytics Overview</h2>
+          <h2 className="text-2xl font-bold text-white font-heading">Analytics Dashboard</h2>
           <p className="text-gray-400 mt-1 font-body">
-            {role === 'admin' ? 'System-wide performance metrics' : 'Track student performance and engagement'}
+            {role === 'admin' ? 'System-wide performance & integrity metrics' : 'Deep dive into student performance & AI accuracy'}
           </p>
         </div>
 
@@ -265,39 +337,45 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
         />
       </motion.div>
 
-      {/* Charts Section */}
+      {/* --- ROW 1: Performance & Trends --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* Score Distribution */}
-        <motion.div variants={itemVariants} className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 backdrop-blur-sm">
+        {/* Subject Performance Radar */}
+        <motion.div variants={itemVariants} className="bg-slate-900/40 border border-white/5 rounded-xl p-6 backdrop-blur-md shadow-xl">
           <div className="flex items-center mb-6">
-            <div className="p-2 bg-blue-500/10 rounded-lg mr-3">
-              <TrendingUp className="w-5 h-5 text-blue-400" />
+            <div className="p-2 bg-pink-500/10 rounded-lg mr-3">
+              <Target className="w-5 h-5 text-pink-400" />
             </div>
-            <h3 className="text-lg font-semibold text-white">Score Distribution</h3>
+            <div>
+              <h3 className="text-lg font-semibold text-white">Subject Performance</h3>
+              <p className="text-xs text-gray-400">Average score per subject</p>
+            </div>
           </div>
-          <div className="h-64 w-full">
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={graphData.scoreDist}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="range" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
-                <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#334155', opacity: 0.4 }} />
-                <Bar dataKey="count" name="Students" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
+              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={graphData.subjectRadar}>
+                <PolarGrid stroke="#334155" />
+                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#475569' }} />
+                <Radar name="Avg Score" dataKey="average" stroke="#ec4899" fill="#ec4899" fillOpacity={0.3} />
+                <Tooltip content={<CustomTooltip />} />
+              </RadarChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
         {/* Submission Trends */}
-        <motion.div variants={itemVariants} className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 backdrop-blur-sm">
+        <motion.div variants={itemVariants} className="bg-slate-900/40 border border-white/5 rounded-xl p-6 backdrop-blur-md shadow-xl">
           <div className="flex items-center mb-6">
             <div className="p-2 bg-purple-500/10 rounded-lg mr-3">
               <Users className="w-5 h-5 text-purple-400" />
             </div>
-            <h3 className="text-lg font-semibold text-white">Submission Activity (7 Days)</h3>
+            <div>
+              <h3 className="text-lg font-semibold text-white">Activity Trends</h3>
+              <p className="text-xs text-gray-400">Submissions over last 7 days</p>
+            </div>
           </div>
-          <div className="h-64 w-full">
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={graphData.trends}>
                 <defs>
@@ -307,62 +385,74 @@ const AnalyticsView = ({ role = 'teacher' }: AnalyticsViewProps) => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="date" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
-                <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
+                <XAxis dataKey="date" stroke="#94a3b8" tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8', fontSize: 12 }} />
                 <Tooltip content={<CustomTooltip />} />
                 <Area type="monotone" dataKey="submissions" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorSubmissions)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
+      </div>
 
-        {/* Status Distribution (Donut) */}
-        <motion.div variants={itemVariants} className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 backdrop-blur-sm lg:col-span-2">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="w-full md:w-1/3">
-              <div className="flex items-center mb-6">
-                <div className="p-2 bg-green-500/10 rounded-lg mr-3">
-                  <PieIcon className="w-5 h-5 text-green-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">Grading Status</h3>
-              </div>
-              <p className="text-gray-400 text-sm mb-4">
-                Overview of submission statuses. "Reviewed" indicates teacher has verified the AI grade.
-              </p>
-              <div className="space-y-3">
-                {graphData.statusDist.map((entry, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                      <span className="text-gray-300">{entry.name}</span>
-                    </div>
-                    <span className="font-mono font-bold text-white">{entry.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+      {/* --- ROW 2: Deep Insights (Deviation & Plagiarism) --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-            <div className="w-full md:w-2/3 h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={graphData.statusDist}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {graphData.statusDist.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                </PieChart>
-              </ResponsiveContainer>
+        {/* AI vs Teacher Deviation */}
+        <motion.div variants={itemVariants} className="bg-slate-900/40 border border-white/5 rounded-xl p-6 backdrop-blur-md shadow-xl">
+          <div className="flex items-center mb-6">
+            <div className="p-2 bg-orange-500/10 rounded-lg mr-3">
+              <Zap className="w-5 h-5 text-orange-400" />
             </div>
+            <div>
+              <h3 className="text-lg font-semibold text-white">AI vs. Human Accuracy</h3>
+              <p className="text-xs text-gray-400">Comparison of AI scores vs Teacher overrides</p>
+            </div>
+          </div>
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={graphData.deviationData}>
+                <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+                <XAxis dataKey="name" scale="band" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                <YAxis domain={[0, 100]} tick={{ fill: '#94a3b8' }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Bar dataKey="aiScore" name="AI Score" barSize={20} fill="#3b82f6" />
+                <Line type="monotone" dataKey="teacherScore" name="Teacher Score" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Plagiarism Risk Analysis */}
+        <motion.div variants={itemVariants} className="bg-slate-900/40 border border-white/5 rounded-xl p-6 backdrop-blur-md shadow-xl">
+          <div className="flex items-center mb-6">
+            <div className="p-2 bg-red-500/10 rounded-lg mr-3">
+              <AlertTriangle className="w-5 h-5 text-red-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-white">Plagiarism vs. Score</h3>
+              <p className="text-xs text-gray-400">Identifying high-scoring potential plagiarism</p>
+            </div>
+          </div>
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis type="number" dataKey="plagiarism" name="Plagiarism %" unit="%" stroke="#94a3b8" domain={[0, 100]} tick={{ fill: '#94a3b8' }}>
+                  <Label value="Plagiarism %" offset={-5} position="insideBottom" fill="#94a3b8" />
+                </XAxis>
+                <YAxis type="number" dataKey="score" name="Score" unit="" stroke="#94a3b8" domain={[0, 100]} tick={{ fill: '#94a3b8' }}>
+                  <Label value="Score" angle={-90} position="insideLeft" fill="#94a3b8" />
+                </YAxis>
+                <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<CustomTooltip />} />
+                <Scatter name="Submissions" data={graphData.plagiarismRisk} fill="#ef4444">
+                  {graphData.plagiarismRisk.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.risk === 'High' ? '#ef4444' : '#10b981'} />
+                  ))}
+                </Scatter>
+              </ScatterChart>
+            </ResponsiveContainer>
           </div>
         </motion.div>
 
@@ -401,4 +491,3 @@ const SparklesIcon = ({ className }: { className?: string }) => (
 );
 
 export default AnalyticsView;
-
